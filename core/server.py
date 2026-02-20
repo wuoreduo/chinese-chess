@@ -42,8 +42,11 @@ def ai_move_task(game_id, ai_color):
     
     game = games[game_id]
     
-    # 获取 AI 实例
-    ai = ai_players.get(game_id)
+    # 获取 AI 实例 - 根据颜色选择正确的 key
+    if ai_color == 'b' and f'{game_id}_black' in ai_players:
+        ai = ai_players[f'{game_id}_black']
+    else:
+        ai = ai_players.get(game_id)
     
     if not ai or game.game_over:
         return
@@ -82,10 +85,16 @@ def ai_move_task(game_id, ai_color):
                 'last_move': {'from': (fr, fc), 'to': (tr, tc)}
             })
             
-            # AI vs AI 模式下触发对方 AI
+            # AI vs AI 模式下触发下一个 AI
+            # 当前走棋的是 ai_color，走完后 current_player 变为对方
+            # 所以下一个应该是 current_player 对应的 AI
             if f'{game_id}_black' in ai_players and not game.game_over:
                 next_ai_color = game.current_player
-                threading.Thread(target=ai_move_task, args=(game_id, next_ai_color), daemon=True).start()
+                # 只有当前走棋的是红方时才触发黑方，当前是黑方时触发红方
+                if ai_color == 'r':
+                    threading.Thread(target=ai_move_task, args=(game_id, 'b'), daemon=True).start()
+                else:
+                    threading.Thread(target=ai_move_task, args=(game_id, 'r'), daemon=True).start()
 
 
 @app.route('/')
