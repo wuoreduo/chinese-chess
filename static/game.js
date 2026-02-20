@@ -4,6 +4,8 @@ let validMoves = [];
 let socket = null;
 let sounds = {};
 let soundEnabled = true;
+let gameType = null;
+let aiPaused = false;
 
 const CELL_SIZE = 50;
 const BOARD_OFFSET_X = 25;
@@ -215,7 +217,9 @@ function initSocket() {
 }
 
 async function createGame() {
-    const gameType = document.getElementById('gameType').value;
+    const gameTypeSelect = document.getElementById('gameType');
+    const selectedType = gameTypeSelect.value;
+    gameType = selectedType;
     
     try {
         const response = await fetch('/api/games', {
@@ -224,7 +228,7 @@ async function createGame() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                type: gameType
+                type: selectedType
             })
         });
         
@@ -241,6 +245,16 @@ async function createGame() {
             
             createBoardSVG();
             await loadGame(currentGameId);
+            
+            // AI vs AI 模式显示暂停/继续按钮
+            const pauseBtn = document.getElementById('pauseBtn');
+            if (selectedType === 'aivai') {
+                pauseBtn.style.display = 'inline-block';
+                pauseBtn.textContent = '⏸️ 暂停';
+                aiPaused = false;
+            } else {
+                pauseBtn.style.display = 'none';
+            }
         } else {
             alert('创建游戏失败：' + data.error);
         }
@@ -349,6 +363,11 @@ function updateGameInfo(data) {
 
 function onPieceClick(row, col, piece) {
     if (!currentGameId) return;
+    
+    // AI vs AI 模式禁止玩家操作
+    if (gameType === 'aivai') {
+        return;
+    }
     
     const gameInfo = document.getElementById('currentPlayer');
     const currentPlayer = gameInfo.classList.contains('red') ? 'r' : 'b';
@@ -647,8 +666,11 @@ async function restartGame() {
     selectedPiece = null;
     validMoves = [];
     window.currentBoard = null;
+    gameType = null;
+    aiPaused = false;
     document.getElementById('gameInfo').style.display = 'none';
     document.getElementById('undoBtn').disabled = true;
+    document.getElementById('pauseBtn').style.display = 'none';
     const boardEl = document.getElementById('board');
     boardEl.innerHTML = '';
 }
@@ -666,3 +688,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+async function togglePause() {
+    if (!currentGameId || gameType !== 'aivai') return;
+    
+    const endpoint = aiPaused ? '/resume' : '/pause';
+    try {
+        const response = await fetch(`/api/games/${currentGameId}${endpoint}`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            aiPaused = !aiPaused;
+            const btn = document.getElementById('pauseBtn');
+            btn.textContent = aiPaused ? '▶️ 继续' : '⏸️ 暂停';
+        } else {
+            alert(data.error || '操作失败');
+        }
+    } catch (error) {
+        console.error('暂停/继续失败:', error);
+    }
+}

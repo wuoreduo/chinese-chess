@@ -31,6 +31,7 @@ db = Database(os.path.join(PROJECT_ROOT, 'chess.db'))
 games = {}
 ai_players = {}
 ai_threads = {}
+ai_paused = {}
 
 
 def ai_move_task(game_id, ai_color):
@@ -41,6 +42,10 @@ def ai_move_task(game_id, ai_color):
         return
     
     game = games[game_id]
+    
+    # 检查是否暂停
+    if ai_paused.get(game_id, False):
+        return
     
     # 获取 AI 实例 - 根据颜色选择正确的 key
     if ai_color == 'b' and f'{game_id}_black' in ai_players:
@@ -95,6 +100,44 @@ def ai_move_task(game_id, ai_color):
                     threading.Thread(target=ai_move_task, args=(game_id, 'b'), daemon=True).start()
                 else:
                     threading.Thread(target=ai_move_task, args=(game_id, 'r'), daemon=True).start()
+
+
+@app.route('/api/games/<int:game_id>/pause', methods=['POST'])
+def pause_game(game_id):
+    """暂停 AI vs AI 游戏"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    game = games[game_id]
+    game_data = db.load_game_state(game_id)
+    if not game_data or game_data['game_type'] != 'aivai':
+        return jsonify({'error': '仅 AI vs AI 支持暂停'}), 400
+    
+    ai_paused[game_id] = True
+    return jsonify({'success': True, 'message': '游戏已暂停'})
+
+
+@app.route('/api/games/<int:game_id>/resume', methods=['POST'])
+def resume_game(game_id):
+    """继续 AI vs AI 游戏"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    game = games[game_id]
+    game_data = db.load_game_state(game_id)
+    if not game_data or game_data['game_type'] != 'aivai':
+        return jsonify({'error': '仅 AI vs AI 支持暂停'}), 400
+    
+    ai_paused[game_id] = False
+    
+    # 触发当前玩家的 AI
+    if not game.game_over:
+        next_ai_color = game.current_player
+        ai_key = f'{game_id}_black' if next_ai_color == 'b' else game_id
+        if ai_key in ai_players:
+            threading.Thread(target=ai_move_task, args=(game_id, next_ai_color), daemon=True).start()
+    
+    return jsonify({'success': True, 'message': '游戏已继续'})
 
 
 @app.route('/')
