@@ -15,9 +15,15 @@ sys.path.insert(0, BASE_DIR)
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
-from .game import ChineseChess
-from .ai import ChessAI
-from .database import Database
+
+try:
+    from .game import ChineseChess
+    from .ai import ChessAI
+    from .database import Database
+except ImportError:
+    from game import ChineseChess
+    from ai import ChessAI
+    from database import Database
 
 app = Flask(__name__, 
             static_folder=os.path.join(PROJECT_ROOT, 'static'), 

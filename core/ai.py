@@ -3,7 +3,11 @@
 """
 
 import random
-from .game import ChineseChess
+
+try:
+    from .game import ChineseChess
+except ImportError:
+    from game import ChineseChess
 
 
 class ChessAI:
