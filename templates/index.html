@@ -7,59 +7,73 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>中国象棋</h1>
+    <!-- 主菜单界面 -->
+    <div id="mainMenu" class="main-menu">
+        <h1 class="game-title">🏮 中国象棋 🏮</h1>
         
-        <div class="game-setup">
-            <div class="form-group">
-                <label>游戏模式:</label>
-                <select id="gameType">
-                    <option value="pvp">人人对战</option>
-                    <option value="pvai">人机对战</option>
-                    <option value="aivai">机机对战</option>
-                </select>
-            </div>
-            <button id="createGame" onclick="createGame()">创建游戏</button>
+        <div class="mode-buttons">
+            <button class="mode-btn pvp" onclick="selectMode('pvp')">
+                <span class="icon">👤</span>
+                <span class="text">人人对战</span>
+                <span class="subtext">PvP Mode</span>
+            </button>
+            
+            <button class="mode-btn pvai" onclick="selectMode('pvai')">
+                <span class="icon">🤖</span>
+                <span class="text">人机对战</span>
+                <span class="subtext">PvAI Mode</span>
+            </button>
+            
+            <button class="mode-btn aivai" onclick="selectMode('aivai')">
+                <span class="icon">⚙️</span>
+                <span class="text">机机对战</span>
+                <span class="subtext">AIvAI Mode</span>
+            </button>
         </div>
         
-        <div id="gameInfo" class="game-info" style="display: none;">
-            <span id="currentPlayer">当前：红方</span>
-            <span id="gameStatus"></span>
+        <div class="footer-deco">楚河 ⋅ 汉界</div>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="gameView" class="game-view" style="display: none;">
+        <div class="top-bar">
+            <button class="back-btn" onclick="backToMenu()">← 返回</button>
+            <span id="gameStatus" class="status-text">当前：红方</span>
+            <button class="sound-btn" onclick="toggleSound()" id="soundBtn">🔊 音效</button>
         </div>
         
-        <div class="board-wrapper">
+        <div class="board-container">
             <div id="board" class="board"></div>
         </div>
         
-        <div class="controls">
-            <button id="undoBtn" onclick="undoMove()" disabled>悔棋</button>
-            <button id="pauseBtn" onclick="togglePause()" style="display: none;">⏸️ 暂停</button>
-            <button onclick="restartGame()">重新开始</button>
-            <button id="soundBtn" onclick="toggleSound()">🔊 音效：开</button>
+        <div class="action-buttons">
+            <button onclick="undoMove()" id="undoBtn">♟️ 悔棋</button>
+            <button onclick="proposeDraw()" id="drawBtn">🤝 求和</button>
+            <button onclick="resignGame()" id="resignBtn">🏳️ 认输</button>
+            <button onclick="togglePause()" id="pauseBtn" style="display: none;">⏸️ 暂停</button>
+            <button onclick="restartGame()">🔄 重开</button>
         </div>
-        
-        <div class="curl-help">
-            <h3>curl 指令示例:</h3>
-            <pre id="curlExample">
-# 创建游戏
-curl -X POST http://localhost:5000/api/games \
-  -H "Content-Type: application/json" \
-  -d '{"type": "pvai"}'
+    </div>
 
-# 走棋
-curl -X POST http://localhost:5000/api/games/1/move \
-  -H "Content-Type: application/json" \
-  -d '{"from": [6, 4], "to": [5, 4]}'
+    <!-- 求和确认弹窗 -->
+    <div id="drawModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <p class="modal-text">对方请求和棋，是否接受？</p>
+            <div class="modal-buttons">
+                <button class="modal-btn accept" onclick="acceptDraw()">✅ 接受</button>
+                <button class="modal-btn reject" onclick="rejectDraw()">❌ 拒绝</button>
+            </div>
+        </div>
+    </div>
 
-# 获取游戏状态
-curl http://localhost:5000/api/games/1
-
-# 悔棋
-curl -X POST http://localhost:5000/api/games/1/undo
-
-# 获取 FEN
-curl http://localhost:5000/api/games/1/fen
-            </pre>
+    <!-- 游戏结束弹窗 -->
+    <div id="gameOverModal" class="modal" style="display: none;">
+        <div class="modal-content game-over">
+            <p id="gameOverText" class="modal-text game-over-text">游戏结束</p>
+            <div class="modal-buttons">
+                <button class="modal-btn restart" onclick="restartGame()">🔄 再来一局</button>
+                <button class="modal-btn menu" onclick="backToMenu()">📋 返回菜单</button>
+            </div>
         </div>
     </div>
     

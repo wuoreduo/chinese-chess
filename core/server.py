@@ -32,6 +32,7 @@ games = {}
 ai_players = {}
 ai_threads = {}
 ai_paused = {}
+draw_proposals = {}  # 存储求和提议：{game_id: {'proposer': 'r', 'opponent': 'b'}}
 
 
 def ai_move_task(game_id, ai_color):
@@ -302,6 +303,141 @@ def undo_move(game_id):
     return jsonify({'success': False, 'message': '无法悔棋'}), 400
 
 
+@app.route('/api/games/<int:game_id>/draw', methods=['POST'])
+def propose_draw(game_id):
+    """提议和棋"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    game = games[game_id]
+    if game.game_over:
+        return jsonify({'error': '游戏已结束'}), 400
+    
+    game_data = db.load_game_state(game_id)
+    game_type = game_data['game_type'] if game_data else 'pvp'
+    
+    # PvAI 模式：AI 自动决定
+    if game_type == 'pvai':
+        ai = ai_players.get(game_id)
+        if ai and game.current_player == 'b':  # 黑方是 AI
+            if ai.should_accept_draw(game):
+                # AI 接受和棋
+                game.game_over = True
+                game.winner = 'draw'
+                db.save_game_state(game_id, game)
+                socketio.emit('game_over', {'winner': 'draw', 'reason': '双方同意和棋'})
+                return jsonify({'success': True, 'result': 'accepted', 'message': 'AI 接受和棋'})
+            else:
+                return jsonify({'success': True, 'result': 'rejected', 'message': 'AI 拒绝和棋'})
+        else:  # 红方是 AI（理论上不应该发生）
+            return jsonify({'error': '无效的游戏状态'}), 400
+    
+    # AIvAI 模式：不支持手动求和
+    if game_type == 'aivai':
+        return jsonify({'error': 'AI vs AI 模式不支持求和'}), 400
+    
+    # PvP 模式：记录提议，等待对方确认
+    current_player = game.current_player
+    opponent = 'b' if current_player == 'r' else 'r'
+    
+    draw_proposals[game_id] = {
+        'proposer': current_player,
+        'opponent': opponent
+    }
+    
+    socketio.emit('draw_proposal', {
+        'game_id': game_id,
+        'proposer': current_player
+    })
+    
+    return jsonify({
+        'success': True,
+        'result': 'pending',
+        'message': '求和提议已发送，等待对方确认'
+    })
+
+
+@app.route('/api/games/<int:game_id>/draw/accept', methods=['POST'])
+def accept_draw(game_id):
+    """接受和棋"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    if game_id not in draw_proposals:
+        return jsonify({'error': '没有待处理的求和提议'}), 400
+    
+    game = games[game_id]
+    game_data = db.load_game_state(game_id)
+    current_player = game.current_player
+    proposal = draw_proposals[game_id]
+    
+    # 只有被提议方可以接受
+    if current_player != proposal['opponent']:
+        return jsonify({'error': '只有对方可以接受和棋'}), 403
+    
+    # 设置和棋状态
+    game.game_over = True
+    game.winner = 'draw'
+    db.save_game_state(game_id, game)
+    
+    # 清除提议
+    del draw_proposals[game_id]
+    
+    # 广播游戏结束
+    socketio.emit('game_over', {
+        'game_id': game_id,
+        'winner': 'draw',
+        'reason': '双方同意和棋'
+    })
+    
+    return jsonify({'success': True, 'message': '和棋成立'})
+
+
+@app.route('/api/games/<int:game_id>/draw/reject', methods=['POST'])
+def reject_draw(game_id):
+    """拒绝和棋"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    if game_id in draw_proposals:
+        del draw_proposals[game_id]
+        socketio.emit('draw_rejected', {'game_id': game_id})
+    
+    return jsonify({'success': True, 'message': '已拒绝和棋'})
+
+
+@app.route('/api/games/<int:game_id>/resign', methods=['POST'])
+def resign_game(game_id):
+    """认输"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    game = games[game_id]
+    if game.game_over:
+        return jsonify({'error': '游戏已结束'}), 400
+    
+    current_player = game.current_player
+    winner = 'b' if current_player == 'r' else 'r'
+    
+    # 设置游戏结束
+    game.game_over = True
+    game.winner = winner
+    db.save_game_state(game_id, game)
+    
+    # 广播游戏结束
+    socketio.emit('game_over', {
+        'game_id': game_id,
+        'winner': winner,
+        'reason': f'{"红方" if current_player == "r" else "黑方"}认输'
+    })
+    
+    return jsonify({
+        'success': True,
+        'winner': winner,
+        'message': f'{"红方" if current_player == "r" else "黑方"}认输，{"黑方" if current_player == "r" else "红方"}获胜'
+    })
+
+
 @app.route('/api/games/<int:game_id>', methods=['DELETE'])
 def delete_game(game_id):
     """删除游戏"""
@@ -343,6 +479,28 @@ def handle_join_game(data):
     """加入游戏房间"""
     game_id = data.get('game_id')
     print(f'客户端加入游戏 {game_id}')
+
+
+@socketio.on('accept_draw')
+def handle_accept_draw(data):
+    """接受和棋 (WebSocket)"""
+    game_id = data.get('game_id')
+    if game_id in games and game_id in draw_proposals:
+        game = games[game_id]
+        game.game_over = True
+        game.winner = 'draw'
+        db.save_game_state(game_id, game)
+        del draw_proposals[game_id]
+        emit('game_over', {'game_id': game_id, 'winner': 'draw', 'reason': '双方同意和棋'}, broadcast=True)
+
+
+@socketio.on('reject_draw')
+def handle_reject_draw(data):
+    """拒绝和棋 (WebSocket)"""
+    game_id = data.get('game_id')
+    if game_id in draw_proposals:
+        del draw_proposals[game_id]
+        emit('draw_rejected', {'game_id': game_id}, broadcast=True)
 
 
 if __name__ == '__main__':

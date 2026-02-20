@@ -137,3 +137,29 @@ class ChessAI:
                 alpha = max(alpha, eval_score)
         
         return best_move if best_move else random.choice(moves)
+    
+    def should_accept_draw(self, game):
+        """
+        AI 评估是否应该接受和棋
+        :return: True 接受，False 拒绝
+        """
+        # 评估当前局势
+        score = self.evaluate(game)
+        
+        # 如果 AI 执红，分数为正表示优势，为负表示劣势
+        # 如果 AI 执黑，分数为正表示优势，为负表示劣势
+        
+        # 劣势时（分数 < -500）接受和棋
+        # 均势时（-500 <= score <= 500）接受和棋
+        # 优势时（分数 > 500）拒绝和棋，继续争取胜利
+        
+        if score < -500:
+            # 明显劣势，接受和棋
+            return True
+        elif score > 500:
+            # 明显优势，拒绝和棋
+            return False
+        else:
+            # 均势，有一定概率接受
+            import random
+            return random.random() < 0.7  # 70% 概率接受

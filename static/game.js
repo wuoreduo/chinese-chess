@@ -6,6 +6,7 @@ let sounds = {};
 let soundEnabled = true;
 let gameType = null;
 let aiPaused = false;
+let windowInMainMenu = true;
 
 const CELL_SIZE = 50;
 const BOARD_OFFSET_X = 25;
@@ -41,8 +42,34 @@ function toggleSound() {
     soundEnabled = !soundEnabled;
     const btn = document.getElementById('soundBtn');
     if (btn) {
-        btn.textContent = soundEnabled ? '🔊 音效：开' : '🔇 音效：关';
+        btn.textContent = soundEnabled ? '🔊 音效' : '🔇 静音';
     }
+}
+
+function selectMode(mode) {
+    gameType = mode;
+    createGame();
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('gameView').style.display = 'flex';
+    windowInMainMenu = false;
+}
+
+function backToMenu() {
+    if (currentGameId) {
+        fetch(`/api/games/${currentGameId}`, {method: 'DELETE'}).catch(() => {});
+    }
+    currentGameId = null;
+    selectedPiece = null;
+    validMoves = [];
+    window.currentBoard = null;
+    window.gameOver = false;
+    aiPaused = false;
+    
+    document.getElementById('gameView').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'flex';
+    document.getElementById('drawModal').style.display = 'none';
+    document.getElementById('gameOverModal').style.display = 'none';
+    windowInMainMenu = true;
 }
 
 function createBoardSVG() {
@@ -57,7 +84,6 @@ function createBoardSVG() {
     const g = document.createElementNS(svgNS, "g");
     svg.appendChild(g);
     
-    // 绘制竖线 - 全部贯通（包括楚河汉界）
     for (let i = 0; i <= 8; i++) {
         const line = document.createElementNS(svgNS, "line");
         line.setAttribute("x1", BOARD_OFFSET_X + i * CELL_SIZE);
@@ -69,10 +95,8 @@ function createBoardSVG() {
         g.appendChild(line);
     }
     
-    // 绘制横线
     for (let i = 0; i <= 9; i++) {
         if (i === 0 || i === 9) {
-            // 最上和最下的横线 - 贯通整个棋盘
             const line = document.createElementNS(svgNS, "line");
             line.setAttribute("x1", BOARD_OFFSET_X);
             line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
@@ -82,7 +106,6 @@ function createBoardSVG() {
             line.setAttribute("stroke-width", "1.5");
             g.appendChild(line);
         } else if (i < 5) {
-            // 上半区域横线（第 1-4 行）- 贯通
             const line = document.createElementNS(svgNS, "line");
             line.setAttribute("x1", BOARD_OFFSET_X);
             line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
@@ -92,7 +115,6 @@ function createBoardSVG() {
             line.setAttribute("stroke-width", "1.5");
             g.appendChild(line);
         } else {
-            // 下半区域横线（第 6-8 行）- 贯通
             const line = document.createElementNS(svgNS, "line");
             line.setAttribute("x1", BOARD_OFFSET_X);
             line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
@@ -211,15 +233,30 @@ function initSocket() {
         }
     });
     
+    socket.on('game_over', (data) => {
+        if (data.game_id === currentGameId || data.winner) {
+            showGameOver(data);
+        }
+    });
+    
+    socket.on('draw_proposal', (data) => {
+        if (data.game_id === currentGameId) {
+            showDrawModal();
+        }
+    });
+    
+    socket.on('draw_rejected', (data) => {
+        if (data.game_id === currentGameId) {
+            alert('对方拒绝了和棋请求');
+        }
+    });
+    
     socket.on('disconnect', () => {
         console.log('WebSocket 已断开');
     });
 }
 
 async function createGame() {
-    const gameTypeSelect = document.getElementById('gameType');
-    const selectedType = gameTypeSelect.value;
-    gameType = selectedType;
     window.gameOver = false;
     
     try {
@@ -229,7 +266,7 @@ async function createGame() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                type: selectedType
+                type: gameType
             })
         });
         
@@ -237,8 +274,6 @@ async function createGame() {
         
         if (response.ok) {
             currentGameId = data.game_id;
-            document.getElementById('gameInfo').style.display = 'flex';
-            document.getElementById('undoBtn').disabled = false;
             
             if (socket) {
                 socket.emit('join_game', {game_id: currentGameId});
@@ -246,10 +281,10 @@ async function createGame() {
             
             createBoardSVG();
             await loadGame(currentGameId);
+            updateButtons();
             
-            // AI vs AI 模式显示暂停/继续按钮
             const pauseBtn = document.getElementById('pauseBtn');
-            if (selectedType === 'aivai') {
+            if (gameType === 'aivai') {
                 pauseBtn.style.display = 'inline-block';
                 pauseBtn.textContent = '⏸️ 暂停';
                 aiPaused = false;
@@ -330,7 +365,6 @@ function updateBoard(data) {
         const [fromRow, fromCol] = from;
         const [toRow, toCol] = to;
         
-        const piece = data.board[toRow][toCol];
         const isCapture = oldBoard && oldBoard[fromRow][fromCol] && 
                           oldBoard[toRow][toCol] === null;
         
@@ -373,47 +407,56 @@ function updateBoard(data) {
 }
 
 function updateGameInfo(data) {
-    const playerEl = document.getElementById('currentPlayer');
     const statusEl = document.getElementById('gameStatus');
     
-    const wasInCheck = window.lastInCheck;
-    window.lastInCheck = data.in_check;
-    
-    playerEl.textContent = `当前：${data.current_player === 'r' ? '红方' : '黑方'}`;
-    playerEl.className = data.current_player === 'r' ? 'red' : 'black';
+    const currentPlayerText = data.current_player === 'r' ? '红方' : '黑方';
+    statusEl.textContent = `当前：${currentPlayerText}`;
+    statusEl.className = 'status-text ' + (data.current_player === 'r' ? 'red' : 'black');
     
     window.gameOver = data.game_over;
     
     if (data.game_over) {
-        statusEl.textContent = data.winner === 'r' ? '红方获胜！' : '黑方获胜！';
-    } else if (data.in_check && !wasInCheck) {
-        statusEl.textContent = data.current_player === 'r' ? '红方被将军！' : '黑方被将军！';
-        playSound('check');
-    } else {
-        statusEl.textContent = '';
+        showGameOver(data);
     }
+}
+
+function showGameOver(data) {
+    if (window.gameOverShown) return;
+    window.gameOverShown = true;
+    
+    const modal = document.getElementById('gameOverModal');
+    const textEl = document.getElementById('gameOverText');
+    
+    if (data.winner === 'draw') {
+        textEl.textContent = '🤝 和棋！双方握手言和';
+    } else if (data.winner) {
+        const winnerText = data.winner === 'r' ? '红方' : '黑方';
+        const reason = data.reason || '获胜';
+        textEl.textContent = `🏆 ${winnerText}${reason}！`;
+    } else {
+        textEl.textContent = '游戏结束';
+    }
+    
+    modal.style.display = 'flex';
 }
 
 function onPieceClick(row, col, piece) {
     if (!currentGameId) return;
     
-    // AI vs AI 模式禁止玩家操作
     if (gameType === 'aivai') {
         return;
     }
     
-    // 游戏结束后禁止操作
     if (window.gameOver) {
         return;
     }
     
-    const gameInfo = document.getElementById('currentPlayer');
-    const currentPlayer = gameInfo.classList.contains('red') ? 'r' : 'b';
+    const statusEl = document.getElementById('gameStatus');
+    const currentPlayer = statusEl.classList.contains('red') ? 'r' : 'b';
     
-    // 如果当前没有选中棋子，且点击的是己方棋子
     if (!selectedPiece) {
         if (piece.color !== currentPlayer) {
-            return; // 不能选对方的棋子
+            return;
         }
         playSound('click');
         selectedPiece = [row, col];
@@ -422,18 +465,14 @@ function onPieceClick(row, col, piece) {
         return;
     }
     
-    // 如果已经选中了棋子
     const selectedRow = selectedPiece[0];
     const selectedCol = selectedPiece[1];
-    const selectedPieceObj = window.currentBoard[selectedRow][selectedCol];
     
-    // 如果点击的是同一个棋子，取消选中
     if (selectedRow === row && selectedCol === col) {
         clearSelection();
         return;
     }
     
-    // 如果点击的是己方其他棋子，切换选中
     if (piece.color === currentPlayer) {
         playSound('click');
         selectedPiece = [row, col];
@@ -442,14 +481,12 @@ function onPieceClick(row, col, piece) {
         return;
     }
     
-    // 如果点击的是对方棋子，尝试吃子
     makeMove(row, col);
 }
 
 function calculateValidMoves(row, col, piece) {
     validMoves = [];
     
-    // 兵的方向：红兵向上（-1），黑卒向下（+1）
     const pawnDir = piece.color === 'r' ? -1 : 1;
     
     const directions = {
@@ -458,7 +495,7 @@ function calculateValidMoves(row, col, piece) {
         'c': [[0, 1], [0, -1], [1, 0], [-1, 0]],
         'a': [[-1, -1], [-1, 1], [1, -1], [1, 1]],
         'k': [[0, 1], [0, -1], [1, 0], [-1, 0]],
-        'p': [[pawnDir, 0]], // 兵/卒只能向前走
+        'p': [[pawnDir, 0]],
         'b': [[-2, -2], [-2, 2], [2, -2], [2, 2]]
     };
     
@@ -502,18 +539,15 @@ function calculateValidMoves(row, col, piece) {
                 steps++;
             }
         } else {
-            // 其他棋子：只走一步
             let nr = row + dr;
             let nc = col + dc;
             
-            // 马：检查马腿
             if (piece.type === 'n') {
                 const legR = row + (Math.abs(dr) === 2 ? Math.sign(dr) : 0);
                 const legC = col + (Math.abs(dc) === 2 ? Math.sign(dc) : 0);
                 if (isBlocked(legR, legC)) continue;
             }
             
-            // 象：检查象眼
             if (piece.type === 'b') {
                 const eyeR = row + Math.sign(dr);
                 const eyeC = col + Math.sign(dc);
@@ -526,16 +560,13 @@ function calculateValidMoves(row, col, piece) {
         }
     }
     
-    // 兵/卒过河后可以横走
     if (piece.type === 'p') {
-        // 红兵过河（row < 5）或黑卒过河（row > 4）可以横走
         if ((piece.color === 'r' && row < 5) || (piece.color === 'b' && row > 4)) {
             if (isValidPosition(row, col - 1)) validMoves.push([row, col - 1]);
             if (isValidPosition(row, col + 1)) validMoves.push([row, col + 1]);
         }
     }
     
-    // 仕/士：限制在九宫格内
     if (piece.type === 'a') {
         validMoves = validMoves.filter(([r, c]) => c >= 3 && c <= 5);
         if (piece.color === 'r') {
@@ -545,7 +576,6 @@ function calculateValidMoves(row, col, piece) {
         }
     }
     
-    // 相/象：限制在己方半场
     if (piece.type === 'b') {
         if (piece.color === 'r') {
             validMoves = validMoves.filter(([r, c]) => r >= 5);
@@ -554,7 +584,6 @@ function calculateValidMoves(row, col, piece) {
         }
     }
     
-    // 将/帅：限制在九宫格内
     if (piece.type === 'k') {
         validMoves = validMoves.filter(([r, c]) => c >= 3 && c <= 5);
         if (piece.color === 'r') {
@@ -570,7 +599,7 @@ function isValidPosition(row, col) {
 }
 
 function isBlocked(row, col) {
-    if (!isValidPosition(row, col)) return false; // 棋盘外不算阻挡
+    if (!isValidPosition(row, col)) return false;
     return getPieceAt(row, col) !== null;
 }
 
@@ -583,24 +612,6 @@ function canMoveOrCapture(fromRow, fromCol, toRow, toCol, piece) {
     const target = getPieceAt(toRow, toCol);
     if (!target) return true;
     return target.color !== piece.color;
-}
-
-function countObstacles(fromRow, fromCol, toRow, toCol) {
-    let count = 0;
-    if (fromRow === toRow) {
-        const minCol = Math.min(fromCol, toCol);
-        const maxCol = Math.max(fromCol, toCol);
-        for (let c = minCol + 1; c < maxCol; c++) {
-            if (getPieceAt(fromRow, c)) count++;
-        }
-    } else if (fromCol === toCol) {
-        const minRow = Math.min(fromRow, toRow);
-        const maxRow = Math.max(fromRow, toRow);
-        for (let r = minRow + 1; r < maxRow; r++) {
-            if (getPieceAt(r, fromCol)) count++;
-        }
-    }
-    return count;
 }
 
 function highlightSelected() {
@@ -699,35 +710,23 @@ async function undoMove() {
 
 async function restartGame() {
     if (currentGameId) {
-        await fetch(`/api/games/${currentGameId}`, {method: 'DELETE'});
+        await fetch(`/api/games/${currentGameId}`, {method: 'DELETE'}).catch(() => {});
     }
+    
+    document.getElementById('gameOverModal').style.display = 'none';
+    document.getElementById('drawModal').style.display = 'none';
+    window.gameOverShown = false;
+    
     currentGameId = null;
     selectedPiece = null;
     validMoves = [];
     window.currentBoard = null;
     window.gameOver = false;
-    gameType = null;
     aiPaused = false;
-    document.getElementById('gameInfo').style.display = 'none';
-    document.getElementById('undoBtn').disabled = true;
-    document.getElementById('pauseBtn').style.display = 'none';
-    const boardEl = document.getElementById('board');
-    boardEl.innerHTML = '';
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    initSounds();
-    initSocket();
     
-    document.getElementById('gameType').addEventListener('change', (e) => {
-        const undoBtn = document.getElementById('undoBtn');
-        if (e.target.value === 'aivai') {
-            undoBtn.disabled = true;
-        } else {
-            undoBtn.disabled = !currentGameId;
-        }
-    });
-});
+    createBoardSVG();
+    createGame();
+}
 
 async function togglePause() {
     if (!currentGameId || gameType !== 'aivai') return;
@@ -751,3 +750,125 @@ async function togglePause() {
         console.error('暂停/继续失败:', error);
     }
 }
+
+async function proposeDraw() {
+    if (!currentGameId) return;
+    
+    try {
+        const response = await fetch(`/api/games/${currentGameId}/draw`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            if (data.result === 'accepted') {
+                alert('和棋成立！');
+            } else if (data.result === 'rejected') {
+                alert('对方拒绝了和棋请求');
+            } else if (data.result === 'pending') {
+                // PvP 模式，等待对方确认
+            }
+        } else {
+            alert(data.error || '求和失败');
+        }
+    } catch (error) {
+        console.error('求和失败:', error);
+    }
+}
+
+function showDrawModal() {
+    const modal = document.getElementById('drawModal');
+    modal.style.display = 'flex';
+}
+
+async function acceptDraw() {
+    if (!currentGameId) return;
+    
+    try {
+        const response = await fetch(`/api/games/${currentGameId}/draw/accept`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        document.getElementById('drawModal').style.display = 'none';
+        
+        if (response.ok) {
+            window.gameOverShown = false;
+            showGameOver({winner: 'draw', reason: '双方同意和棋'});
+        } else {
+            alert(data.error || '接受和棋失败');
+        }
+    } catch (error) {
+        console.error('接受和棋失败:', error);
+        document.getElementById('drawModal').style.display = 'none';
+    }
+}
+
+async function rejectDraw() {
+    if (!currentGameId) return;
+    
+    try {
+        const response = await fetch(`/api/games/${currentGameId}/draw/reject`, {
+            method: 'POST'
+        });
+        
+        document.getElementById('drawModal').style.display = 'none';
+        
+        if (!response.ok) {
+            console.error('拒绝和棋失败');
+        }
+    } catch (error) {
+        console.error('拒绝和棋失败:', error);
+        document.getElementById('drawModal').style.display = 'none';
+    }
+}
+
+async function resignGame() {
+    if (!currentGameId) return;
+    
+    if (!confirm('确定要认输吗？')) return;
+    
+    try {
+        const response = await fetch(`/api/games/${currentGameId}/resign`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            window.gameOverShown = false;
+            showGameOver({winner: data.winner, reason: '认输'});
+        } else {
+            alert(data.error || '认输失败');
+        }
+    } catch (error) {
+        console.error('认输失败:', error);
+    }
+}
+
+function updateButtons() {
+    const undoBtn = document.getElementById('undoBtn');
+    const drawBtn = document.getElementById('drawBtn');
+    const resignBtn = document.getElementById('resignBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    
+    if (gameType === 'aivai') {
+        undoBtn.style.display = 'none';
+        drawBtn.style.display = 'none';
+        resignBtn.style.display = 'none';
+        pauseBtn.style.display = 'inline-block';
+    } else {
+        undoBtn.style.display = 'inline-block';
+        drawBtn.style.display = 'inline-block';
+        resignBtn.style.display = 'inline-block';
+        pauseBtn.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initSounds();
+    initSocket();
+    window.gameOverShown = false;
+});
