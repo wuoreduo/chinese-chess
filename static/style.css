@@ -566,3 +566,314 @@ body {
         width: 100%;
     }
 }
+
+/* ==================== 摆子界面样式 ==================== */
+.setup-menu {
+    max-width: 500px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background: linear-gradient(135deg, #f5e6d3 0%, #e8d5b5 40%, #c9a86c 70%, #8b5a2b 100%);
+}
+
+.setup-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.setup-header h2 {
+    font-size: 24px;
+    color: #8b5a2b;
+    font-family: 'KaiTi', 'STKaiti', serif;
+}
+
+/* 棋子池样式 */
+.piece-pool {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 5px 0;
+}
+
+.pool-label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #8b5a2b;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+.pieces-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.piece-in-pool {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.piece-in-pool.red {
+    background: linear-gradient(135deg, #ff6b6b 0%, #c0392b 100%);
+    color: #fff;
+    border: 2px solid #922b21;
+}
+
+.piece-in-pool.black {
+    background: linear-gradient(135deg, #555 0%, #2c3e50 100%);
+    color: #fff;
+    border: 2px solid #1a252f;
+}
+
+.piece-in-pool:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.piece-in-pool.selected {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px gold;
+    z-index: 10;
+}
+
+.piece-in-pool.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 摆子棋盘样式 */
+#setupBoard {
+    position: relative;
+    width: 450px;
+    height: 500px;
+    margin: 10px auto;
+    background: #f0d9b5;
+    border: 2px solid #8b5a2b;
+    border-radius: 4px;
+}
+
+.setup-piece {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all 0.15s;
+    z-index: 5;
+}
+
+.setup-piece.red {
+    background: linear-gradient(135deg, #ff6b6b 0%, #c0392b 100%);
+    color: #fff;
+    border: 2px solid #922b21;
+}
+
+.setup-piece.black {
+    background: linear-gradient(135deg, #666 0%, #2c3e50 100%);
+    color: #fff;
+    border: 2px solid #1a252f;
+}
+
+.setup-piece:hover {
+    transform: translate(-50%, -50%) scale(1.1);
+    z-index: 6;
+}
+
+.setup-piece.selected {
+    transform: translate(-50%, -50%) scale(1.15);
+    box-shadow: 0 0 15px gold;
+    z-index: 7;
+}
+
+/* 合法位置标记 */
+.valid-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 255, 0, 0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* 摆子操作按钮 */
+.setup-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 10px;
+    padding: 10px;
+}
+
+.setup-actions button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    background: linear-gradient(135deg, #8b5a2b 0%, #6d421b 100%);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.setup-actions button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.setup-actions button.primary-btn {
+    background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+    font-weight: bold;
+}
+
+/* 游戏配置弹窗 */
+.setup-config {
+    max-width: 350px;
+}
+
+.setup-config h3 {
+    font-size: 20px;
+    color: #8b5a2b;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.config-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(139, 90, 43, 0.2);
+}
+
+.config-row:last-child {
+    border-bottom: none;
+}
+
+.config-row label {
+    font-size: 16px;
+    color: #5a3d2b;
+}
+
+.config-row input[type="checkbox"],
+.config-row select {
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: 1px solid #8b5a2b;
+    font-size: 14px;
+}
+
+/* 局面列表弹窗 */
+.setup-list {
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.setup-list h3 {
+    font-size: 20px;
+    color: #8b5a2b;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.setup-name-input {
+    margin-bottom: 15px;
+}
+
+.setup-name-input label {
+    display: block;
+    margin-bottom: 5px;
+    color: #5a3d2b;
+}
+
+.setup-name-input input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #8b5a2b;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+#setupListContainer {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.setup-list-item {
+    padding: 10px 15px;
+    margin: 5px 0;
+    background: rgba(139, 90, 43, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.setup-list-item:hover {
+    background: rgba(139, 90, 43, 0.2);
+    transform: translateX(5px);
+}
+
+.no-setups {
+    text-align: center;
+    color: #888;
+    padding: 20px;
+}
+
+/* AI 切换按钮 */
+.ai-toggle-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px;
+    border-top: 1px solid rgba(139, 90, 43, 0.3);
+    margin-top: 10px;
+}
+
+.ai-toggle-buttons button {
+    padding: 8px 16px;
+    border: 2px solid #8b5a2b;
+    border-radius: 5px;
+    background: #f5e6d3;
+    color: #5a3d2b;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ai-toggle-buttons button.active {
+    background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%);
+    color: white;
+    border-color: #1e8449;
+}
+
+.ai-toggle-buttons button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}

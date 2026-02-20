@@ -2,6 +2,32 @@
 中国象棋游戏规则逻辑
 """
 
+# 棋子位置约束规则（摆子阶段）
+PIECE_POSITION_RULES = {
+    'r': {  # 红方
+        'k': {'min_row': 7, 'max_row': 9, 'min_col': 3, 'max_col': 5},
+        'a': {'fixed': [(7,3), (7,5), (8,4), (9,3), (9,5)]},
+        'b': {'fixed': [(5,2), (5,6), (7,0), (7,4), (7,8), (9,2), (9,6)]},
+        'p': {'home_cols': [0,2,4,6,8], 'home_row_min': 5},
+        'n': {'any': True},
+        'r': {'any': True},
+        'c': {'any': True},
+    },
+    'b': {  # 黑方
+        'k': {'min_row': 0, 'max_row': 2, 'min_col': 3, 'max_col': 5},
+        'a': {'fixed': [(0,3), (0,5), (1,4), (2,3), (2,5)]},
+        'b': {'fixed': [(0,2), (0,6), (2,0), (2,4), (2,8), (4,2), (4,6)]},
+        'p': {'home_cols': [0,2,4,6,8], 'home_row_max': 4},
+        'n': {'any': True},
+        'r': {'any': True},
+        'c': {'any': True},
+    }
+}
+
+# 每方棋子最大数量
+MAX_PIECES = {'k': 1, 'a': 2, 'b': 2, 'n': 2, 'r': 2, 'c': 2, 'p': 5}
+
+
 class ChineseChess:
     """中国象棋游戏类"""
     
@@ -351,3 +377,145 @@ class ChineseChess:
     def get_repetition_count(self, fen):
         """获取局面重复次数"""
         return self.position_history.count(fen)
+    
+    def validate_piece_position(self, piece_type, color, row, col):
+        """
+        验证棋子摆放位置是否合法（摆子阶段）
+        :param piece_type: 棋子类型 (k/a/b/n/r/c/p)
+        :param color: 颜色 ('r' 红方 / 'b' 黑方)
+        :param row, col: 目标位置
+        :return: (bool, str) 是否合法 + 原因
+        """
+        if piece_type not in PIECE_POSITION_RULES[color]:
+            return False, f"未知的棋子类型：{piece_type}"
+        
+        rules = PIECE_POSITION_RULES[color][piece_type]
+        piece_name = self.PIECE_NAMES[color].get(piece_type, piece_type)
+        
+        # 1. 无限制棋子
+        if rules.get('any'):
+            return True, ""
+        
+        # 2. 将/帅 - 九宫范围
+        if piece_type == 'k':
+            if not (rules['min_row'] <= row <= rules['max_row'] and 
+                    rules['min_col'] <= col <= rules['max_col']):
+                return False, f"{piece_name}必须在九宫内"
+            return True, ""
+        
+        # 3. 仕/士、相/象 - 固定位置
+        if piece_type in ('a', 'b'):
+            if (row, col) not in rules['fixed']:
+                return False, f"{piece_name}只能放在特定位置"
+            return True, ""
+        
+        # 4. 兵/卒 - 己方半场只能在前线
+        if piece_type == 'p':
+            if color == 'r':
+                # 红兵
+                if row >= rules['home_row_min']:  # 己方半场
+                    if col not in rules['home_cols']:
+                        return False, "兵在己方半场只能放在直线位置"
+            else:
+                # 黑卒
+                if row <= rules['home_row_max']:  # 己方半场
+                    if col not in rules['home_cols']:
+                        return False, "卒在己方半场只能放在直线位置"
+            return True, ""
+        
+        return True, ""
+    
+    def count_pieces(self, color):
+        """
+        统计某方各棋子数量
+        :param color: 'r' 或 'b'
+        :return: dict {piece_type: count}
+        """
+        counts = {'k': 0, 'a': 0, 'b': 0, 'n': 0, 'r': 0, 'c': 0, 'p': 0}
+        for row in self.board:
+            for cell in row:
+                if cell and cell[0] == color:
+                    counts[cell[1]] += 1
+        return counts
+    
+    def can_add_piece(self, color, piece_type):
+        """
+        检查是否可以添加某个棋子
+        :param color: 'r' 或 'b'
+        :param piece_type: 棋子类型
+        :return: bool
+        """
+        counts = self.count_pieces(color)
+        return counts.get(piece_type, 0) < MAX_PIECES.get(piece_type, 0)
+    
+    def set_custom_board(self, board_data):
+        """
+        设置自定义局面
+        :param board_data: list of {row, col, color, type}
+        """
+        # 清空棋盘
+        self.board = [[None for _ in range(9)] for _ in range(10)]
+        
+        # 放置棋子
+        for item in board_data:
+            row, col = item['row'], item['col']
+            color, piece_type = item['color'], item['type']
+            if 0 <= row < 10 and 0 <= col < 9:
+                self.board[row][col] = (color, piece_type)
+        
+        # 重置状态
+        self.current_player = self.RED
+        self.game_over = False
+        self.winner = None
+        self.move_history = []
+        self.position_history = []
+    
+    def load_from_fen(self, fen):
+        """
+        从 FEN 字符串加载局面
+        :param fen: FEN 字符串
+        """
+        self.board = [[None for _ in range(9)] for _ in range(10)]
+        
+        rows = fen.split('/')
+        for row_idx, row_str in enumerate(rows):
+            col_idx = 0
+            for char in row_str:
+                if char.isdigit():
+                    col_idx += int(char)
+                else:
+                    # 确定颜色：大写=红方，小写=黑方
+                    if char.isupper():
+                        color = 'r'
+                        piece_type = char.lower()
+                    else:
+                        color = 'b'
+                        piece_type = char
+                    
+                    if 0 <= row_idx < 10 and 0 <= col_idx < 9:
+                        self.board[row_idx][col_idx] = (color, piece_type)
+                    col_idx += 1
+        
+        self.current_player = self.RED
+        self.game_over = False
+        self.winner = None
+        self.move_history = []
+        self.position_history = []
+    
+    def to_board_data(self):
+        """
+        将棋盘转换为数据格式（用于保存）
+        :return: list of {row, col, color, type}
+        """
+        data = []
+        for row in range(10):
+            for col in range(9):
+                piece = self.board[row][col]
+                if piece:
+                    data.append({
+                        'row': row,
+                        'col': col,
+                        'color': piece[0],
+                        'type': piece[1]
+                    })
+        return data

@@ -7,6 +7,8 @@ let soundEnabled = true;
 let gameType = null;
 let aiPaused = false;
 let aivaiFirstMove = 'r'; // AIvAI 模式先手方，默认红方
+let aiEnabled = {'r': false, 'b': false};  // AI 开关状态（自定义模式）
+let pendingAiToggle = null;  // 待执行的 AI 切换
 
 const CELL_SIZE = 50;
 const BOARD_OFFSET_X = 25;
@@ -793,6 +795,78 @@ function updateButtons() {
         undoBtn.style.display = 'inline-block';
         resignBtn.style.display = 'inline-block';
         pauseBtn.style.display = 'none';
+    }
+}
+
+// ========== 自定义模式 AI 切换 ==========
+
+function toggleAiFromGame(color) {
+    if (!currentGameId) return;
+    
+    const enabled = !aiEnabled[color];
+    
+    // 如果当前是该方走棋，标记为待切换
+    const statusEl = document.getElementById('gameStatus');
+    const currentPlayer = statusEl.classList.contains('red') ? 'r' : 'b';
+    
+    if (currentPlayer === color) {
+        pendingAiToggle = {color, enabled};
+        // 等待当前操作完成
+    } else {
+        // 立即切换
+        applyAiToggle(color, enabled);
+    }
+}
+
+async function applyAiToggle(color, enabled) {
+    try {
+        const response = await fetch(`/api/games/${currentGameId}/ai-toggle`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({color, enabled})
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            aiEnabled[color] = enabled;
+            updateAiButton(color, enabled);
+        } else {
+            alert(data.error || '切换失败');
+        }
+    } catch (error) {
+        console.error('切换 AI 失败:', error);
+    }
+}
+
+function updateAiButton(color, enabled) {
+    const btn = document.getElementById(color === 'r' ? 'redAiBtn' : 'blackAiBtn');
+    if (btn) {
+        btn.textContent = `🤖 ${color === 'r' ? '红方' : '黑方'}AI: ${enabled ? '开' : '关'}`;
+        btn.classList.toggle('active', enabled);
+    }
+}
+
+// 应用待处理的 AI 切换
+function applyPendingAiToggle() {
+    if (pendingAiToggle) {
+        applyAiToggle(pendingAiToggle.color, pendingAiToggle.enabled);
+        pendingAiToggle = null;
+    }
+}
+
+// 自定义模式初始化游戏
+function initGameFromCustom(gameId, aiConfig, firstMove) {
+    currentGameId = gameId;
+    aiEnabled = aiConfig;
+    
+    // 更新 AI 按钮显示
+    updateAiButton('r', aiEnabled.r);
+    updateAiButton('b', aiEnabled.b);
+    
+    // 加载游戏
+    if (typeof loadGame === 'function') {
+        loadGame(gameId);
     }
 }
 

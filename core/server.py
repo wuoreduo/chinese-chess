@@ -208,6 +208,12 @@ def game_js():
     return send_from_directory(app.static_folder, 'game.js')
 
 
+@app.route('/setup.js')
+def setup_js():
+    """摆子 JS 文件"""
+    return send_from_directory(app.static_folder, 'setup.js')
+
+
 @app.route('/sounds/<filename>')
 def sounds(filename):
     """音效文件"""
@@ -415,6 +421,177 @@ def get_fen(game_id):
     fen = game.get_board_fen()
     
     return jsonify({'fen': fen, 'current_player': game.current_player})
+
+
+# ========== 自定义局面 API ==========
+
+@app.route('/api/games/custom', methods=['POST'])
+def create_custom_game():
+    """创建自定义局面游戏"""
+    data = request.json
+    board_data = data.get('board', [])  # [{row, col, color, type}]
+    ai_config = data.get('ai_config', {'r': False, 'b': False})
+    first_move = data.get('first_move', 'r')
+    game_type = data.get('game_type', 'custom')
+    red_player = data.get('red', '红方')
+    black_player = data.get('black', '黑方')
+    
+    # 创建游戏记录
+    game_id = db.create_custom_game(game_type, red_player, black_player, ai_config, first_move)
+    
+    # 创建游戏实例
+    game = ChineseChess()
+    game.set_custom_board(board_data)
+    game.current_player = first_move
+    games[game_id] = game
+    
+    # 保存初始状态
+    db.save_game_state(game_id, game)
+    
+    # 设置 AI
+    if ai_config.get('r'):
+        ai_players[game_id] = ChessAI('r', depth=3)
+    if ai_config.get('b'):
+        ai_players[f'{game_id}_black'] = ChessAI('b', depth=3)
+    
+    # 如果先手方是 AI，触发 AI 走棋
+    if (first_move == 'r' and ai_config.get('r')) or (first_move == 'b' and ai_config.get('b')):
+        threading.Thread(target=ai_move_task, args=(game_id, first_move), daemon=True).start()
+    
+    return jsonify({
+        'game_id': game_id,
+        'message': '自定义游戏创建成功'
+    })
+
+
+@app.route('/api/games/<int:game_id>/setup', methods=['GET', 'POST'])
+def game_setup(game_id):
+    """保存/加载摆子局面"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    if request.method == 'POST':
+        # 保存局面
+        data = request.json
+        board_data = data.get('board', [])
+        
+        game = games[game_id]
+        game.set_custom_board(board_data)
+        db.save_game_state(game_id, game)
+        
+        return jsonify({'success': True, 'message': '局面已保存'})
+    else:
+        # 加载局面
+        game = games[game_id]
+        return jsonify({
+            'board': game.to_board_data(),
+            'fen': game.get_board_fen()
+        })
+
+
+@app.route('/api/games/<int:game_id>/ai-toggle', methods=['POST'])
+def toggle_ai(game_id):
+    """切换 AI 开关"""
+    if game_id not in games:
+        return jsonify({'error': '游戏不存在'}), 404
+    
+    data = request.json
+    color = data.get('color')  # 'r' 或 'b'
+    enabled = data.get('enabled', False)
+    
+    if color not in ('r', 'b'):
+        return jsonify({'error': '颜色参数错误'}), 400
+    
+    game = games[game_id]
+    
+    # 更新 AI 配置
+    game_data = db.load_game_state(game_id)
+    ai_config = json.loads(game_data['ai_config']) if game_data.get('ai_config') else {'r': False, 'b': False}
+    ai_config[color] = enabled
+    db.update_game_ai_config(game_id, ai_config)
+    
+    # 设置或移除 AI 实例
+    ai_key = f'{game_id}_black' if color == 'b' else game_id
+    if enabled:
+        ai_players[ai_key] = ChessAI(color, depth=3)
+        # 如果当前是该方走棋，触发 AI
+        if game.current_player == color and not game.game_over:
+            threading.Thread(target=ai_move_task, args=(game_id, color), daemon=True).start()
+    else:
+        if ai_key in ai_players:
+            del ai_players[ai_key]
+    
+    return jsonify({
+        'success': True,
+        'ai_config': ai_config,
+        'message': f'{"红方" if color == "r" else "黑方"}AI 已{"开启" if enabled else "关闭"}'
+    })
+
+
+@app.route('/api/setups', methods=['GET', 'POST'])
+def setups():
+    """获取或保存局面列表"""
+    if request.method == 'GET':
+        setups_list = db.list_custom_setups()
+        return jsonify({'setups': setups_list})
+    else:
+        # 保存新局面
+        data = request.json
+        name = data.get('name')
+        board_data = data.get('board', [])
+        ai_config = data.get('ai_config', {'r': False, 'b': False})
+        first_move = data.get('first_move', 'r')
+        
+        if not name:
+            return jsonify({'error': '需要提供局面名称'}), 400
+        
+        # 生成 FEN
+        game = ChineseChess()
+        game.set_custom_board(board_data)
+        fen = game.get_board_fen()
+        
+        if db.save_custom_setup(name, fen, board_data, ai_config, first_move):
+            return jsonify({'success': True, 'message': '局面已保存'})
+        else:
+            return jsonify({'error': '保存失败'}), 500
+
+
+@app.route('/api/setups/<name>', methods=['GET', 'DELETE'])
+def manage_setup(name):
+    """加载或删除指定局面"""
+    if request.method == 'GET':
+        setup = db.load_custom_setup(name)
+        if setup:
+            return jsonify({'setup': setup})
+        else:
+            return jsonify({'error': '局面不存在'}), 404
+    else:
+        # DELETE
+        if db.delete_custom_setup(name):
+            return jsonify({'success': True, 'message': '局面已删除'})
+        else:
+            return jsonify({'error': '局面不存在'}), 404
+
+
+@app.route('/api/validate-position', methods=['POST'])
+def validate_position():
+    """验证棋子摆放位置"""
+    data = request.json
+    piece_type = data.get('type')
+    color = data.get('color')
+    row = data.get('row')
+    col = data.get('col')
+    
+    if not all([piece_type, color, row is not None, col is not None]):
+        return jsonify({'error': '参数不完整'}), 400
+    
+    game = ChineseChess()
+    valid, reason = game.validate_piece_position(piece_type, color, row, col)
+    
+    return jsonify({
+        'valid': valid,
+        'reason': reason if not valid else ''
+    })
 
 
 @socketio.on('connect')

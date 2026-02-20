@@ -29,6 +29,12 @@
                 <span class="text">机机对战</span>
                 <span class="subtext">AIvAI Mode</span>
             </button>
+            
+            <button class="mode-btn custom" onclick="showSetupMenu()">
+                <span class="icon">♟️</span>
+                <span class="text">摆子对战</span>
+                <span class="subtext">Custom Mode</span>
+            </button>
         </div>
         
         <div class="footer-deco">楚河 ⋅ 汉界</div>
@@ -59,6 +65,95 @@
         </div>
     </div>
 
+    <!-- 摆子界面 -->
+    <div id="setupMenu" class="setup-menu" style="display: none;">
+        <div class="setup-header">
+            <button class="back-btn" onclick="showMainMenu()">← 返回</button>
+            <h2>摆子模式</h2>
+        </div>
+        
+        <!-- 黑方棋子池（上方） -->
+        <div class="piece-pool black-pool">
+            <div class="pool-label">黑方棋子</div>
+            <div class="pieces-row" id="blackPiecePool">
+                <!-- 由 JS 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 棋盘区域 -->
+        <div class="board-container">
+            <div id="setupBoard" class="board"></div>
+        </div>
+        
+        <!-- 红方棋子池（下方） -->
+        <div class="piece-pool red-pool">
+            <div class="pool-label">红方棋子</div>
+            <div class="pieces-row" id="redPiecePool">
+                <!-- 由 JS 动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="setup-actions">
+            <button onclick="resetSetupBoard()">🔄 清空</button>
+            <button onclick="resetToInitial()">↩️ 初始局面</button>
+            <button onclick="saveSetupDialog()">💾 保存局面</button>
+            <button onclick="loadSetupDialog()">📂 加载局面</button>
+            <button class="primary-btn" onclick="showSetupConfig()">▶️ 开始游戏</button>
+        </div>
+    </div>
+
+    <!-- 游戏配置弹窗 -->
+    <div id="setupConfigModal" class="modal" style="display: none;">
+        <div class="modal-content setup-config">
+            <h3>游戏配置</h3>
+            
+            <div class="config-row">
+                <label for="redAiToggle">红方 AI</label>
+                <input type="checkbox" id="redAiToggle">
+            </div>
+            
+            <div class="config-row">
+                <label for="blackAiToggle">黑方 AI</label>
+                <input type="checkbox" id="blackAiToggle">
+            </div>
+            
+            <div class="config-row">
+                <label for="firstMoveSelect">先手方</label>
+                <select id="firstMoveSelect">
+                    <option value="r">红方</option>
+                    <option value="b">黑方</option>
+                </select>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeSetupConfig()">取消</button>
+                <button class="modal-btn start" onclick="startCustomGame()">开始游戏</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存/加载局面弹窗 -->
+    <div id="setupListModal" class="modal" style="display: none;">
+        <div class="modal-content setup-list">
+            <h3 id="setupListTitle">保存局面</h3>
+            
+            <div class="setup-name-input" id="setupNameInput">
+                <label for="setupName">局面名称</label>
+                <input type="text" id="setupName" placeholder="局面_20260221_143052">
+            </div>
+            
+            <div id="setupListContainer">
+                <!-- 局面列表由 JS 生成 -->
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" onclick="closeSetupList()">取消</button>
+                <button class="modal-btn confirm" id="setupListConfirmBtn" onclick="confirmSetupAction()">确定</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 游戏界面 -->
     <div id="gameView" class="game-view" style="display: none;">
         <div class="top-bar">
@@ -77,6 +172,12 @@
             <button onclick="togglePause()" id="pauseBtn" style="display: none;">⏸️ 暂停</button>
             <button onclick="restartGame()">🔄 重开</button>
         </div>
+        
+        <!-- AI 切换按钮（仅自定义模式显示） -->
+        <div class="ai-toggle-buttons" id="aiToggleButtons" style="display: none;">
+            <button onclick="toggleAiFromGame('r')" id="redAiBtn">🤖 红方 AI: 关</button>
+            <button onclick="toggleAiFromGame('b')" id="blackAiBtn">🤖 黑方 AI: 关</button>
+        </div>
     </div>
 
     <!-- 游戏结束弹窗 -->
@@ -92,5 +193,6 @@
     
     <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
     <script src="/game.js"></script>
+    <script src="/setup.js"></script>
 </body>
 </html>
