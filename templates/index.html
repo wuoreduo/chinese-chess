@@ -27,13 +27,14 @@
             <span id="gameStatus"></span>
         </div>
         
-        <div class="board-container">
+        <div class="board-wrapper">
             <div id="board" class="board"></div>
         </div>
         
         <div class="controls">
             <button id="undoBtn" onclick="undoMove()" disabled>悔棋</button>
-            <button id="restartBtn" onclick="restartGame()">重新开始</button>
+            <button onclick="restartGame()">重新开始</button>
+            <button id="soundBtn" onclick="toggleSound()">🔊 音效：开</button>
         </div>
         
         <div class="curl-help">

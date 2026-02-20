@@ -8,13 +8,13 @@
 
 **Linux/macOS:**
 ```bash
-python3 controller.py
+python3 tools/controller.py
 ```
 
 **Windows:**
 ```
-双击 controller.pyw（无控制台窗口）
-或运行：python controller.py
+双击 tools/controller.pyw（无控制台窗口）
+或运行：python tools/controller.py
 ```
 
 > 💡 **为什么有两个文件？**
@@ -62,20 +62,20 @@ python3 controller.py
 
 **Linux/macOS:**
 ```bash
-./manage.sh start    # 启动
-./manage.sh stop     # 停止
-./manage.sh restart  # 重启
-./manage.sh status   # 状态
-./manage.sh logs     # 日志
+./scripts/manage.sh start    # 启动
+./scripts/manage.sh stop     # 停止
+./scripts/manage.sh restart  # 重启
+./scripts/manage.sh status   # 状态
+./scripts/manage.sh logs     # 日志
 ```
 
 **Windows:**
 ```cmd
-manage.bat start
-manage.bat stop
-manage.bat restart
-manage.bat status
-manage.bat logs
+scripts\manage.bat start
+scripts\manage.bat stop
+scripts\manage.bat restart
+scripts\manage.bat status
+scripts\manage.bat logs
 ```
 
 ---
@@ -84,12 +84,12 @@ manage.bat logs
 
 **Linux/macOS:**
 ```bash
-./start.sh
+./scripts/start.sh
 ```
 
 **Windows:**
 ```
-双击 start.bat
+双击 scripts\start.bat
 ```
 
 ---
@@ -151,22 +151,35 @@ curl -X DELETE http://localhost:5000/api/games/1
 
 ```
 中国象棋/
-├── controller.py      # GUI 控制器
-├── controller.pyw     # Windows 无窗口版本
-├── manage.sh          # Linux 管理脚本
-├── manage.bat         # Windows 管理脚本
-├── start.sh           # Linux 快速启动
-├── start.bat          # Windows 快速启动
-├── server.py          # Flask 后端
-├── game.py            # 象棋规则
-├── ai.py              # Minimax AI
-├── database.py        # SQLite 数据库
-├── requirements.txt   # 依赖
-├── templates/
-│   └── index.html     # 前端页面
-└── static/
-    ├── style.css      # 样式
-    └── game.js        # 前端逻辑
+├── core/                  # 核心代码
+│   ├── server.py         # Flask 后端 + WebSocket + REST API
+│   ├── game.py           # 象棋规则引擎
+│   ├── ai.py             # Minimax AI
+│   └── database.py       # SQLite 数据库
+├── static/               # 前端资源
+│   ├── style.css         # 样式表
+│   ├── game.js           # 前端逻辑
+│   └── sounds/           # 音效文件
+│       ├── click.wav
+│       ├── move.wav
+│       ├── capture.wav
+│       └── check.wav
+├── templates/            # HTML 模板
+│   └── index.html
+├── scripts/              # 管理脚本
+│   ├── manage.sh         # Linux CLI 管理
+│   ├── manage.bat        # Windows CLI 管理
+│   ├── start.sh          # Linux 快速启动
+│   └── start.bat         # Windows 快速启动
+├── tools/                # 辅助工具
+│   ├── controller.py     # GUI 控制器 (Linux)
+│   └── controller.pyw    # GUI 控制器 (Windows)
+├── docs/                 # 文档和截图
+│   ├── README.md
+│   ├── WINDOWS.md
+│   └── *.png             # 界面截图
+├── requirements.txt      # Python 依赖
+└── chess.db              # SQLite 数据库 (运行时生成)
 ```
 
 ---
@@ -177,7 +190,7 @@ curl -X DELETE http://localhost:5000/api/games/1
 
 1. 安装 [Python 3.8+](https://www.python.org/downloads/)
 2. 复制整个项目到 Windows
-3. 双击 `controller.pyw`
+3. 双击 `tools/controller.pyw`
 4. 点击"启动"按钮
 5. 浏览器访问 http://localhost:5000
 

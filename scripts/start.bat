@@ -1,5 +1,10 @@
 @echo off
 chcp 65001 >nul
+set "SCRIPT_DIR=%~dp0"
+pushd "%SCRIPT_DIR%.."
+set "PROJECT_ROOT=%CD%"
+popd
+
 echo ================================
 echo      中国象棋游戏启动器
 echo ================================
@@ -20,8 +25,8 @@ python --version
 REM 安装依赖
 echo.
 echo [2/3] 检查并安装依赖...
-if exist "requirements.txt" (
-    pip install -r requirements.txt -q
+if exist "%PROJECT_ROOT%\requirements.txt" (
+    pip install -r "%PROJECT_ROOT%\requirements.txt" -q
     echo 依赖安装完成
 ) else (
     echo 错误：未找到 requirements.txt
@@ -40,4 +45,5 @@ echo 按 Ctrl+C 停止服务器
 echo ================================
 echo.
 
-python server.py
+cd /d "%PROJECT_ROOT%"
+python core\server.py

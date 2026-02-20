@@ -2,11 +2,193 @@ let currentGameId = null;
 let selectedPiece = null;
 let validMoves = [];
 let socket = null;
+let sounds = {};
+let soundEnabled = true;
+
+const CELL_SIZE = 50;
+const BOARD_OFFSET_X = 25;
+const BOARD_OFFSET_Y = 25;
 
 const PIECE_NAMES = {
     'r': {'k': '帅', 'a': '仕', 'b': '相', 'n': '马', 'r': '车', 'c': '炮', 'p': '兵'},
     'b': {'k': '将', 'a': '士', 'b': '象', 'n': '马', 'r': '车', 'c': '炮', 'p': '卒'}
 };
+
+function initSounds() {
+    sounds = {
+        click: new Audio('/sounds/click.wav'),
+        move: new Audio('/sounds/move.wav'),
+        capture: new Audio('/sounds/capture.wav'),
+        check: new Audio('/sounds/check.wav')
+    };
+    
+    Object.values(sounds).forEach(audio => {
+        audio.volume = 0.6;
+    });
+}
+
+function playSound(name) {
+    if (!soundEnabled || !sounds[name]) return;
+    
+    const sound = sounds[name].cloneNode();
+    sound.volume = 0.6;
+    sound.play().catch(() => {});
+}
+
+function toggleSound() {
+    soundEnabled = !soundEnabled;
+    const btn = document.getElementById('soundBtn');
+    if (btn) {
+        btn.textContent = soundEnabled ? '🔊 音效：开' : '🔇 音效：关';
+    }
+}
+
+function createBoardSVG() {
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 450 500");
+    
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    board.appendChild(svg);
+    
+    const g = document.createElementNS(svgNS, "g");
+    svg.appendChild(g);
+    
+    for (let i = 0; i <= 8; i++) {
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", BOARD_OFFSET_X + i * CELL_SIZE);
+        line.setAttribute("y1", BOARD_OFFSET_Y);
+        line.setAttribute("x2", BOARD_OFFSET_X + i * CELL_SIZE);
+        line.setAttribute("y2", BOARD_OFFSET_Y + 9 * CELL_SIZE);
+        line.setAttribute("stroke", "#5a3d2b");
+        line.setAttribute("stroke-width", "1.5");
+        g.appendChild(line);
+    }
+    
+    for (let i = 0; i <= 9; i++) {
+        if (i === 0 || i === 9) {
+            const line = document.createElementNS(svgNS, "line");
+            line.setAttribute("x1", BOARD_OFFSET_X);
+            line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line.setAttribute("x2", BOARD_OFFSET_X + 8 * CELL_SIZE);
+            line.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line.setAttribute("stroke", "#5a3d2b");
+            line.setAttribute("stroke-width", "1.5");
+            g.appendChild(line);
+        } else {
+            const line1 = document.createElementNS(svgNS, "line");
+            line1.setAttribute("x1", BOARD_OFFSET_X);
+            line1.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line1.setAttribute("x2", BOARD_OFFSET_X + 3.5 * CELL_SIZE);
+            line1.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line1.setAttribute("stroke", "#5a3d2b");
+            line1.setAttribute("stroke-width", "1.5");
+            g.appendChild(line1);
+            
+            const line2 = document.createElementNS(svgNS, "line");
+            line2.setAttribute("x1", BOARD_OFFSET_X + 4.5 * CELL_SIZE);
+            line2.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line2.setAttribute("x2", BOARD_OFFSET_X + 8 * CELL_SIZE);
+            line2.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line2.setAttribute("stroke", "#5a3d2b");
+            line2.setAttribute("stroke-width", "1.5");
+            g.appendChild(line2);
+        }
+    }
+    
+    const palaceTop = document.createElementNS(svgNS, "line");
+    palaceTop.setAttribute("x1", BOARD_OFFSET_X + 3 * CELL_SIZE);
+    palaceTop.setAttribute("y1", BOARD_OFFSET_Y);
+    palaceTop.setAttribute("x2", BOARD_OFFSET_X + 5 * CELL_SIZE);
+    palaceTop.setAttribute("y2", BOARD_OFFSET_Y + 2 * CELL_SIZE);
+    palaceTop.setAttribute("stroke", "#5a3d2b");
+    palaceTop.setAttribute("stroke-width", "1.5");
+    g.appendChild(palaceTop);
+    
+    const palaceBottom = document.createElementNS(svgNS, "line");
+    palaceBottom.setAttribute("x1", BOARD_OFFSET_X + 5 * CELL_SIZE);
+    palaceBottom.setAttribute("y1", BOARD_OFFSET_Y);
+    palaceBottom.setAttribute("x2", BOARD_OFFSET_X + 3 * CELL_SIZE);
+    palaceBottom.setAttribute("y2", BOARD_OFFSET_Y + 2 * CELL_SIZE);
+    palaceBottom.setAttribute("stroke", "#5a3d2b");
+    palaceBottom.setAttribute("stroke-width", "1.5");
+    g.appendChild(palaceBottom);
+    
+    const palaceTop2 = document.createElementNS(svgNS, "line");
+    palaceTop2.setAttribute("x1", BOARD_OFFSET_X + 3 * CELL_SIZE);
+    palaceTop2.setAttribute("y1", BOARD_OFFSET_Y + 7 * CELL_SIZE);
+    palaceTop2.setAttribute("x2", BOARD_OFFSET_X + 5 * CELL_SIZE);
+    palaceTop2.setAttribute("y2", BOARD_OFFSET_Y + 9 * CELL_SIZE);
+    palaceTop2.setAttribute("stroke", "#5a3d2b");
+    palaceTop2.setAttribute("stroke-width", "1.5");
+    g.appendChild(palaceTop2);
+    
+    const palaceBottom2 = document.createElementNS(svgNS, "line");
+    palaceBottom2.setAttribute("x1", BOARD_OFFSET_X + 5 * CELL_SIZE);
+    palaceBottom2.setAttribute("y1", BOARD_OFFSET_Y + 7 * CELL_SIZE);
+    palaceBottom2.setAttribute("x2", BOARD_OFFSET_X + 3 * CELL_SIZE);
+    palaceBottom2.setAttribute("y2", BOARD_OFFSET_Y + 9 * CELL_SIZE);
+    palaceBottom2.setAttribute("stroke", "#5a3d2b");
+    palaceBottom2.setAttribute("stroke-width", "1.5");
+    g.appendChild(palaceBottom2);
+    
+    const riverText = document.createElementNS(svgNS, "text");
+    riverText.setAttribute("x", BOARD_OFFSET_X + 4 * CELL_SIZE);
+    riverText.setAttribute("y", BOARD_OFFSET_Y + 4.75 * CELL_SIZE);
+    riverText.setAttribute("text-anchor", "middle");
+    riverText.setAttribute("fill", "#5a3d2b");
+    riverText.setAttribute("font-size", "22");
+    riverText.setAttribute("font-family", "Microsoft YaHei, sans-serif");
+    riverText.setAttribute("letter-spacing", "15");
+    riverText.textContent = "楚 河        汉 界";
+    g.appendChild(riverText);
+    
+    const starPositions = [
+        [1, 2], [7, 2],
+        [0, 3], [2, 3], [4, 3], [6, 3], [8, 3],
+        [1, 7], [7, 7],
+        [0, 6], [2, 6], [4, 6], [6, 6], [8, 6]
+    ];
+    
+    starPositions.forEach(([col, row]) => {
+        const x = BOARD_OFFSET_X + col * CELL_SIZE;
+        const y = BOARD_OFFSET_Y + row * CELL_SIZE;
+        const size = 8;
+        const gap = 5;
+        
+        const makeCorner = (cx, cy, dx, dy) => {
+            const line1 = document.createElementNS(svgNS, "line");
+            line1.setAttribute("x1", cx - gap * dx);
+            line1.setAttribute("y1", cy - gap * dy);
+            line1.setAttribute("x2", cx - size * dx);
+            line1.setAttribute("y2", cy - gap * dy);
+            line1.setAttribute("stroke", "#5a3d2b");
+            line1.setAttribute("stroke-width", "1.5");
+            g.appendChild(line1);
+            
+            const line2 = document.createElementNS(svgNS, "line");
+            line2.setAttribute("x1", cx - gap * dx);
+            line2.setAttribute("y1", cy - gap * dy);
+            line2.setAttribute("x2", cx - gap * dx);
+            line2.setAttribute("y2", cy - size * dy);
+            line2.setAttribute("stroke", "#5a3d2b");
+            line2.setAttribute("stroke-width", "1.5");
+            g.appendChild(line2);
+        };
+        
+        if (col > 0) {
+            makeCorner(x, y, 1, 1);
+            makeCorner(x, y, 1, -1);
+        }
+        if (col < 8) {
+            makeCorner(x, y, -1, 1);
+            makeCorner(x, y, -1, -1);
+        }
+    });
+    
+    return svg;
+}
 
 function initSocket() {
     socket = io();
@@ -52,6 +234,7 @@ async function createGame() {
                 socket.emit('join_game', {game_id: currentGameId});
             }
             
+            createBoardSVG();
             await loadGame(currentGameId);
         } else {
             alert('创建游戏失败：' + data.error);
@@ -68,7 +251,7 @@ async function loadGame(gameId) {
         const data = await response.json();
         
         if (response.ok) {
-            renderBoard(data.board);
+            renderPieces(data.board);
             updateGameInfo(data);
         }
     } catch (error) {
@@ -76,57 +259,66 @@ async function loadGame(gameId) {
     }
 }
 
-function renderBoard(board) {
+function getPiecePosition(row, col) {
+    return {
+        x: BOARD_OFFSET_X + col * CELL_SIZE,
+        y: BOARD_OFFSET_Y + row * CELL_SIZE
+    };
+}
+
+function renderPieces(board) {
     const boardEl = document.getElementById('board');
-    boardEl.innerHTML = '';
+    
+    window.currentBoard = board;
+    
+    boardEl.querySelectorAll('.piece, .move-indicator, .last-move-from, .last-move-to').forEach(el => el.remove());
     
     for (let row = 0; row < 10; row++) {
         for (let col = 0; col < 9; col++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell';
-            cell.dataset.row = row;
-            cell.dataset.col = col;
-            
             const piece = board[row][col];
             if (piece) {
+                const pos = getPiecePosition(row, col);
                 const pieceEl = document.createElement('div');
                 pieceEl.className = `piece ${piece.color === 'r' ? 'red' : 'black'}`;
                 pieceEl.textContent = PIECE_NAMES[piece.color][piece.type];
+                pieceEl.style.left = pos.x + 'px';
+                pieceEl.style.top = pos.y + 'px';
                 pieceEl.dataset.row = row;
                 pieceEl.dataset.col = col;
                 pieceEl.onclick = (e) => {
                     e.stopPropagation();
                     onPieceClick(row, col, piece);
                 };
-                cell.appendChild(pieceEl);
+                boardEl.appendChild(pieceEl);
             }
-            
-            if (selectedPiece) {
-                if (validMoves.some(m => m[0] === row && m[1] === col)) {
-                    cell.classList.add('highlight');
-                }
-            }
-            
-            cell.onclick = () => onCellClick(row, col);
-            boardEl.appendChild(cell);
         }
+    }
+    
+    if (selectedPiece) {
+        highlightSelected();
+        showValidMoves();
     }
 }
 
 function updateBoard(data) {
-    renderBoard(data.board);
+    renderPieces(data.board);
     
     if (data.last_move) {
-        const cells = document.querySelectorAll('.cell');
-        cells.forEach(cell => {
-            const row = parseInt(cell.dataset.row);
-            const col = parseInt(cell.dataset.col);
-            
-            if ((row === data.last_move.from[0] && col === data.last_move.from[1]) ||
-                (row === data.last_move.to[0] && col === data.last_move.to[1])) {
-                cell.classList.add('last-move');
-            }
-        });
+        const boardEl = document.getElementById('board');
+        
+        const fromPos = getPiecePosition(data.last_move.from[0], data.last_move.from[1]);
+        const fromEl = document.createElement('div');
+        fromEl.className = 'last-move-from';
+        fromEl.style.left = fromPos.x + 'px';
+        fromEl.style.top = fromPos.y + 'px';
+        boardEl.appendChild(fromEl);
+        
+        const toPos = getPiecePosition(data.last_move.to[0], data.last_move.to[1]);
+        const toEl = document.createElement('div');
+        toEl.className = 'last-move-to';
+        toEl.style.left = toPos.x + 'px';
+        toEl.style.top = toPos.y + 'px';
+        boardEl.appendChild(toEl);
     }
 }
 
@@ -134,11 +326,17 @@ function updateGameInfo(data) {
     const playerEl = document.getElementById('currentPlayer');
     const statusEl = document.getElementById('gameStatus');
     
+    const wasInCheck = window.lastInCheck;
+    window.lastInCheck = data.in_check;
+    
     playerEl.textContent = `当前：${data.current_player === 'r' ? '红方' : '黑方'}`;
-    playerEl.style.color = data.current_player === 'r' ? '#e74c3c' : '#000';
+    playerEl.className = data.current_player === 'r' ? 'red' : 'black';
     
     if (data.game_over) {
         statusEl.textContent = data.winner === 'r' ? '红方获胜！' : '黑方获胜！';
+    } else if (data.in_check && !wasInCheck) {
+        statusEl.textContent = data.current_player === 'r' ? '红方被将军！' : '黑方被将军！';
+        playSound('check');
     } else {
         statusEl.textContent = '';
     }
@@ -148,8 +346,8 @@ function onPieceClick(row, col, piece) {
     if (!currentGameId) return;
     
     const gameInfo = document.getElementById('currentPlayer');
-    const isCurrentPlayer = (piece.color === 'r' && gameInfo.textContent.includes('红方')) ||
-                           (piece.color === 'b' && gameInfo.textContent.includes('黑方'));
+    const isCurrentPlayer = (piece.color === 'r' && gameInfo.classList.contains('red')) ||
+                            (piece.color === 'b' && gameInfo.classList.contains('black'));
     
     if (!isCurrentPlayer) {
         if (selectedPiece) {
@@ -164,19 +362,10 @@ function onPieceClick(row, col, piece) {
         return;
     }
     
+    playSound('click');
     selectedPiece = [row, col];
     calculateValidMoves(row, col, piece);
-    renderWithSelection();
-}
-
-function onCellClick(row, col) {
-    if (!currentGameId || !selectedPiece) return;
-    
-    if (validMoves.some(m => m[0] === row && m[1] === col)) {
-        makeMove(row, col);
-    } else {
-        clearSelection();
-    }
+    renderPiecesWithSelection();
 }
 
 function calculateValidMoves(row, col, piece) {
@@ -199,14 +388,14 @@ function calculateValidMoves(row, col, piece) {
         let nc = col + dc;
         
         if (piece.type === 'n') {
-            const legR = row + (dr / 2);
-            const legC = col + (dc / 2);
+            const legR = row + Math.sign(dr);
+            const legC = col + Math.sign(dc);
             if (isBlocked(legR, legC)) continue;
         }
         
         if (piece.type === 'b') {
-            const eyeR = row + (dr / 2);
-            const eyeC = col + (dc / 2);
+            const eyeR = row + Math.sign(dr);
+            const eyeC = col + Math.sign(dc);
             if (isBlocked(eyeR, eyeC)) continue;
         }
         
@@ -222,12 +411,11 @@ function calculateValidMoves(row, col, piece) {
                 
                 if (!isValidPosition(nr, nc)) break;
                 
-                const target = getPiece(nr, nc);
+                const target = getPieceAt(nr, nc);
                 if (!target) {
                     if (piece.type === 'r') {
                         validMoves.push([nr, nc]);
                     } else {
-                        const boardEl = document.getElementById('board');
                         const count = countObstacles(row, col, nr, nc);
                         if (count === 0) {
                             validMoves.push([nr, nc]);
@@ -295,29 +483,16 @@ function isValidPosition(row, col) {
 }
 
 function isBlocked(row, col) {
-    const boardEl = document.getElementById('board');
-    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-    return cell && cell.querySelector('.piece');
+    return getPieceAt(row, col) !== null;
 }
 
-function getPiece(row, col) {
-    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-    if (cell) {
-        const pieceEl = cell.querySelector('.piece');
-        if (pieceEl) {
-            const color = pieceEl.classList.contains('red') ? 'r' : 'b';
-            const text = pieceEl.textContent;
-            const type = Object.keys(PIECE_NAMES['r']).find(k => 
-                PIECE_NAMES['r'][k] === text || PIECE_NAMES['b'][k] === text
-            );
-            return {color, type};
-        }
-    }
-    return null;
+function getPieceAt(row, col) {
+    if (!currentGameId) return null;
+    return window.currentBoard ? window.currentBoard[row][col] : null;
 }
 
 function canMoveOrCapture(fromRow, fromCol, toRow, toCol, piece) {
-    const target = getPiece(toRow, toCol);
+    const target = getPieceAt(toRow, toCol);
     if (!target) return true;
     return target.color !== piece.color;
 }
@@ -328,59 +503,58 @@ function countObstacles(fromRow, fromCol, toRow, toCol) {
         const minCol = Math.min(fromCol, toCol);
         const maxCol = Math.max(fromCol, toCol);
         for (let c = minCol + 1; c < maxCol; c++) {
-            if (getPiece(fromRow, c)) count++;
+            if (getPieceAt(fromRow, c)) count++;
         }
     } else if (fromCol === toCol) {
         const minRow = Math.min(fromRow, toRow);
         const maxRow = Math.max(fromRow, toRow);
         for (let r = minRow + 1; r < maxRow; r++) {
-            if (getPiece(r, fromCol)) count++;
+            if (getPieceAt(r, fromCol)) count++;
         }
     }
     return count;
 }
 
-function renderWithSelection() {
-    renderBoard(getCurrentBoard());
+function highlightSelected() {
+    if (!selectedPiece) return;
     
-    if (selectedPiece) {
-        const cell = document.querySelector(`.cell[data-row="${selectedPiece[0]}"][data-col="${selectedPiece[1]}"]`);
-        if (cell) {
-            const pieceEl = cell.querySelector('.piece');
-            if (pieceEl) {
-                pieceEl.classList.add('selected');
-            }
-        }
+    const boardEl = document.getElementById('board');
+    const pieceEl = boardEl.querySelector(`.piece[data-row="${selectedPiece[0]}"][data-col="${selectedPiece[1]}"]`);
+    if (pieceEl) {
+        pieceEl.classList.add('selected');
     }
+}
+
+function showValidMoves() {
+    const boardEl = document.getElementById('board');
     
     validMoves.forEach(([row, col]) => {
-        const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
-        if (cell) {
-            cell.classList.add('highlight');
-        }
+        const pos = getPiecePosition(row, col);
+        const indicator = document.createElement('div');
+        indicator.className = 'move-indicator';
+        indicator.style.left = pos.x + 'px';
+        indicator.style.top = pos.y + 'px';
+        indicator.onclick = () => makeMove(row, col);
+        boardEl.appendChild(indicator);
     });
 }
 
-function getCurrentBoard() {
-    const board = [];
-    for (let row = 0; row < 10; row++) {
-        board[row] = [];
-        for (let col = 0; col < 9; col++) {
-            const piece = getPiece(row, col);
-            board[row][col] = piece;
-        }
-    }
-    return board;
+function renderPiecesWithSelection() {
+    renderPieces(window.currentBoard || []);
 }
 
 function clearSelection() {
     selectedPiece = null;
     validMoves = [];
-    renderWithSelection();
+    renderPiecesWithSelection();
 }
 
 async function makeMove(toRow, toCol) {
     if (!selectedPiece || !currentGameId) return;
+    
+    const fromRow = selectedPiece[0];
+    const fromCol = selectedPiece[1];
+    const targetPiece = window.currentBoard ? window.currentBoard[toRow][toCol] : null;
     
     try {
         const response = await fetch(`/api/games/${currentGameId}/move`, {
@@ -397,6 +571,11 @@ async function makeMove(toRow, toCol) {
         const data = await response.json();
         
         if (response.ok) {
+            if (targetPiece) {
+                playSound('capture');
+            } else {
+                playSound('move');
+            }
             clearSelection();
             await loadGame(currentGameId);
         } else {
@@ -435,12 +614,15 @@ async function restartGame() {
     currentGameId = null;
     selectedPiece = null;
     validMoves = [];
+    window.currentBoard = null;
     document.getElementById('gameInfo').style.display = 'none';
     document.getElementById('undoBtn').disabled = true;
-    document.getElementById('board').innerHTML = '';
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initSounds();
     initSocket();
     
     document.getElementById('gameType').addEventListener('change', (e) => {

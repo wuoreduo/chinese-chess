@@ -30,11 +30,11 @@ class ChessGameController:
     
     def __init__(self, base_dir=None):
         if base_dir is None:
-            base_dir = Path(__file__).parent
+            base_dir = Path(__file__).parent.parent  # Go up one level from tools/
         self.base_dir = Path(base_dir)
         self.pid_file = self.base_dir / '.server.pid'
         self.log_file = self.base_dir / '.server.log'
-        self.server_script = self.base_dir / 'server.py'
+        self.server_script = self.base_dir / 'core' / 'server.py'
         self.process = None
     
     def is_running(self):

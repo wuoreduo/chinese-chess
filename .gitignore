@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Runtime files
+.server.pid
+.server.log
+chess.db
+
+# OS files
+.DS_Store
+Thumbs.db

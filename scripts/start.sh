@@ -2,6 +2,9 @@
 
 # 中国象棋游戏一键启动脚本
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 echo "================================"
 echo "     中国象棋游戏启动器"
 echo "================================"
@@ -19,8 +22,8 @@ python3 --version
 # 检查依赖是否已安装
 echo ""
 echo "[2/3] 检查并安装依赖..."
-if [ -f "requirements.txt" ]; then
-    pip3 install -r requirements.txt -q
+if [ -f "$PROJECT_ROOT/requirements.txt" ]; then
+    pip3 install -r "$PROJECT_ROOT/requirements.txt" -q
     echo "依赖安装完成"
 else
     echo "错误：未找到 requirements.txt"
@@ -38,4 +41,5 @@ echo "按 Ctrl+C 停止服务器"
 echo "================================"
 echo ""
 
-python3 server.py
+cd "$PROJECT_ROOT"
+python3 core/server.py

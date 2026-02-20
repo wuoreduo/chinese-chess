@@ -6,9 +6,12 @@ REM 中国象棋游戏管理脚本
 REM 用法：manage.bat [start^|stop^|restart^|status]
 
 set "SCRIPT_DIR=%~dp0"
-set "PID_FILE=%SCRIPT_DIR%.server.pid"
-set "LOG_FILE=%SCRIPT_DIR%.server.log"
-set "SERVER_SCRIPT=%SCRIPT_DIR%server.py"
+pushd "%SCRIPT_DIR%.."
+set "PROJECT_ROOT=%CD%"
+popd
+set "PID_FILE=%PROJECT_ROOT%\.server.pid"
+set "LOG_FILE=%PROJECT_ROOT%\.server.log"
+set "SERVER_SCRIPT=%PROJECT_ROOT%\core\server.py"
 
 goto :main
 
@@ -59,14 +62,17 @@ if exist "requirements.txt" (
 
 REM 启动服务
 echo [INFO] 启动服务器...
-start /B python "%SERVER_SCRIPT%" > "%LOG_FILE%" 2>&1
-set pid=!ERRORLEVEL!
+start "ChessServer" /B python "%SERVER_SCRIPT%" > "%LOG_FILE%" 2>&1
 
-REM 等待启动
+REM 等待启动并获取 PID
 timeout /t 3 /nobreak >nul
 
-call :is_running
-if !errorlevel! equ 0 (
+REM 通过窗口标题获取 PID
+for /f "tokens=2" %%a in ('tasklist /FI "WINDOWTITLE eq ChessServer" /FO LIST 2^>nul ^| findstr "PID:"') do (
+    set pid=%%a
+)
+
+if defined pid (
     echo !pid!> "%PID_FILE%"
     echo [INFO] 服务器已启动
     echo [INFO] 访问地址：http://localhost:5000

@@ -4,9 +4,10 @@
 # 用法：./manage.sh [start|stop|restart|status]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PID_FILE="$SCRIPT_DIR/.server.pid"
-LOG_FILE="$SCRIPT_DIR/.server.log"
-SERVER_SCRIPT="$SCRIPT_DIR/server.py"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PID_FILE="$PROJECT_ROOT/.server.pid"
+LOG_FILE="$PROJECT_ROOT/.server.log"
+SERVER_SCRIPT="$PROJECT_ROOT/core/server.py"
 
 # 颜色输出
 RED='\033[0;31m'

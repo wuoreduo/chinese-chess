@@ -3,9 +3,15 @@
 """
 
 import os
-import json
-import threading
+import sys
 import time
+import threading
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+sys.path.insert(0, PROJECT_ROOT)
+sys.path.insert(0, BASE_DIR)
+
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
@@ -13,13 +19,14 @@ from game import ChineseChess
 from ai import ChessAI
 from database import Database
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'), template_folder=os.path.join(BASE_DIR, 'templates'))
+app = Flask(__name__, 
+            static_folder=os.path.join(PROJECT_ROOT, 'static'), 
+            template_folder=os.path.join(PROJECT_ROOT, 'templates'))
 app.config['SECRET_KEY'] = 'chess-game-secret-key'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-db = Database(os.path.join(BASE_DIR, 'chess.db'))
+db = Database(os.path.join(PROJECT_ROOT, 'chess.db'))
 
 games = {}
 ai_players = {}
@@ -100,6 +107,12 @@ def style_css():
 def game_js():
     """JS 文件"""
     return send_from_directory(app.static_folder, 'game.js')
+
+
+@app.route('/sounds/<filename>')
+def sounds(filename):
+    """音效文件"""
+    return send_from_directory(os.path.join(app.static_folder, 'sounds'), filename)
 
 
 @app.route('/api/games', methods=['GET'])
@@ -283,7 +296,6 @@ def handle_join_game(data):
 
 
 if __name__ == '__main__':
-    import os
-    print(f"BASE_DIR: {BASE_DIR}")
+    print(f"Project root: {PROJECT_ROOT}")
     print(f"Static folder: {app.static_folder}")
     socketio.run(app, host='0.0.0.0', port=5000, debug=False, allow_unsafe_werkzeug=True)
