@@ -74,6 +74,31 @@ function initSetupMode() {
     // 初始化 AI 按钮
     updateSetupAiButton('r');
     updateSetupAiButton('b');
+    
+    // 显示操作提示
+    showSetupTip();
+}
+
+// 显示操作提示
+function showSetupTip() {
+    const board = document.getElementById('setupBoard');
+    let tipEl = board.querySelector('.setup-tip');
+    if (!tipEl) {
+        tipEl = document.createElement('div');
+        tipEl.className = 'setup-tip';
+        tipEl.textContent = '右键点击棋子可删除';
+        tipEl.style.position = 'absolute';
+        tipEl.style.bottom = '10px';
+        tipEl.style.left = '50%';
+        tipEl.style.transform = 'translateX(-50%)';
+        tipEl.style.background = 'rgba(0,0,0,0.7)';
+        tipEl.style.color = 'white';
+        tipEl.style.padding = '5px 10px';
+        tipEl.style.borderRadius = '4px';
+        tipEl.style.fontSize = '12px';
+        tipEl.style.pointerEvents = 'none';
+        board.appendChild(tipEl);
+    }
 }
 
 // 创建摆子棋盘
@@ -328,6 +353,68 @@ function selectBoardPiece(row, col, piece) {
     if (pieceEl) {
         pieceEl.classList.add('selected');
     }
+    
+    // 如果已选中棋子池的棋子，则移动到新位置
+    if (selectedPoolPiece) {
+        movePiece(row, col);
+    }
+}
+
+// 删除棋子
+function removePiece(row, col) {
+    const index = setupBoardState.findIndex(p => p.row === row && p.col === col);
+    if (index >= 0) {
+        setupBoardState.splice(index, 1);
+        renderSetupBoard();
+        clearBoardSelection();
+    }
+}
+
+// 删除选中的棋子
+function deleteSelectedPiece() {
+    if (selectedBoardPiece) {
+        removePiece(selectedBoardPiece.row, selectedBoardPiece.col);
+    } else if (selectedPoolPiece) {
+        clearPoolSelection();
+    }
+}
+
+// 移动棋子到新位置
+function movePiece(toRow, toCol) {
+    if (!selectedBoardPiece) return;
+    
+    const fromIndex = setupBoardState.findIndex(p => 
+        p.row === selectedBoardPiece.row && p.col === selectedBoardPiece.col
+    );
+    
+    if (fromIndex >= 0) {
+        // 移除原位置
+        setupBoardState.splice(fromIndex, 1);
+        
+        // 检查目标位置是否有棋子
+        const toIndex = setupBoardState.findIndex(p => p.row === toRow && p.col === toCol);
+        if (toIndex >= 0) {
+            // 替换
+            setupBoardState[toIndex] = {
+                row: toRow,
+                col: toCol,
+                color: selectedBoardPiece.color,
+                type: selectedBoardPiece.type
+            };
+        } else {
+            // 新位置
+            setupBoardState.push({
+                row: toRow,
+                col: toCol,
+                color: selectedBoardPiece.color,
+                type: selectedBoardPiece.type
+            });
+        }
+        
+        renderSetupBoard();
+        clearBoardSelection();
+        clearPoolSelection();
+    }
 }
 
 // 清除棋盘选中
@@ -433,6 +520,20 @@ function renderSetupBoard() {
         pieceEl.style.top = (BOARD_OFFSET_Y + piece.row * CELL_SIZE) + 'px';
         pieceEl.dataset.row = piece.row;
         pieceEl.dataset.col = piece.col;
+        
+        // 左键点击：选中/移动
+        pieceEl.onclick = (e) => {
+            e.stopPropagation();
+            selectBoardPiece(piece.row, piece.col, piece);
+        };
+        
+        // 右键点击：删除棋子
+        pieceEl.oncontextmenu = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            removePiece(piece.row, piece.col);
+        };
+        
         board.appendChild(pieceEl);
     });
 }
