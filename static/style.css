@@ -651,11 +651,6 @@ body {
     z-index: 10;
 }
 
-.piece-in-pool.to-remove {
-    opacity: 0.5;
-    text-decoration: line-through;
-}
-
 .piece-in-pool.disabled {
     opacity: 0.4;
     cursor: not-allowed;

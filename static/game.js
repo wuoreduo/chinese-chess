@@ -71,6 +71,25 @@ function backToMenu() {
     if (currentGameId) {
         fetch(`/api/games/${currentGameId}`, {method: 'DELETE'}).catch(() => {});
     }
+    
+    // 自定义模式：返回摆子界面
+    if (gameType === 'custom') {
+        currentGameId = null;
+        selectedPiece = null;
+        validMoves = [];
+        window.currentBoard = null;
+        window.gameOver = false;
+        aiPaused = false;
+        aiEnabled = {'r': false, 'b': false};
+        
+        document.getElementById('gameView').style.display = 'none';
+        document.getElementById('aiToggleButtons').style.display = 'none';
+        document.getElementById('gameOverModal').style.display = 'none';
+        document.getElementById('setupMenu').style.display = 'flex';
+        return;
+    }
+    
+    // 普通模式：返回主菜单
     currentGameId = null;
     selectedPiece = null;
     validMoves = [];
@@ -717,6 +736,28 @@ async function undoMove() {
 }
 
 async function restartGame() {
+    // 自定义模式：返回摆子界面
+    if (gameType === 'custom') {
+        // 删除当前游戏
+        if (currentGameId) {
+            await fetch(`/api/games/${currentGameId}`, {method: 'DELETE'}).catch(() => {});
+        }
+        
+        // 返回摆子界面
+        document.getElementById('gameView').style.display = 'none';
+        document.getElementById('aiToggleButtons').style.display = 'none';
+        document.getElementById('setupMenu').style.display = 'flex';
+        document.getElementById('gameOverModal').style.display = 'none';
+        
+        // 重置状态
+        currentGameId = null;
+        gameType = null;
+        aiEnabled = {'r': false, 'b': false};
+        window.gameOverShown = false;
+        return;
+    }
+    
+    // 普通模式：重开当前游戏
     if (currentGameId) {
         await fetch(`/api/games/${currentGameId}`, {method: 'DELETE'}).catch(() => {});
     }

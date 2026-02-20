@@ -9,6 +9,7 @@ let selectedBoardPiece = null; // 从棋盘选中的棋子 {row, col, color, typ
 let setupBoardState = [];      // 当前棋盘状态
 let setupAiConfig = {'r': false, 'b': false};  // AI 开关状态
 let setupFirstMove = 'r';  // 先手方
+let savedSetupState = null;  // 保存的摆子状态（用于返回时恢复）
 
 // 棋子数据
 const PIECE_DATA = {
@@ -31,6 +32,57 @@ const PIECE_DATA = {
         {type: 'p', name: '卒', count: 5}
     ]
 };
+
+// 最大棋子数量
+const MAX_PIECES = {
+    'k': 1, 'a': 2, 'b': 2, 'n': 2, 'r': 2, 'c': 2, 'p': 5
+};
+
+// 统计当前棋盘上的棋子数量
+function countPiecesOnBoard() {
+    const counts = {
+        'r': {k: 0, a: 0, b: 0, n: 0, r: 0, c: 0, p: 0},
+        'b': {k: 0, a: 0, b: 0, n: 0, r: 0, c: 0, p: 0}
+    };
+    
+    setupBoardState.forEach(piece => {
+        counts[piece.color][piece.type]++;
+    });
+    
+    return counts;
+}
+
+// 检查是否可以添加棋子
+function canAddPiece(color, type) {
+    const counts = countPiecesOnBoard();
+    return counts[color][type] < MAX_PIECES[type];
+}
+
+// 更新棋子池显示（禁用已达上限的棋子）
+function updatePiecePoolAvailability() {
+    const counts = countPiecesOnBoard();
+    
+    ['r', 'b'].forEach(color => {
+        ['k', 'a', 'b', 'n', 'r', 'c', 'p'].forEach(type => {
+            const available = counts[color][type] < MAX_PIECES[type];
+            const poolId = color === 'r' ? 'redPiecePool' : 'blackPiecePool';
+            const container = document.getElementById(poolId);
+            
+            if (container) {
+                const pieceEls = container.querySelectorAll(`.piece-in-pool[data-type="${type}"]`);
+                pieceEls.forEach(el => {
+                    if (!available) {
+                        el.classList.add('disabled');
+                        el.title = `已达最大数量 ${MAX_PIECES[type]}`;
+                    } else {
+                        el.classList.remove('disabled');
+                        el.title = '';
+                    }
+                });
+            }
+        });
+    });
+}
 
 // 位置验证规则（前端版本）
 const POSITION_RULES = {
@@ -59,8 +111,18 @@ function initSetupMode() {
     setupMode = true;
     selectedPoolPiece = null;
     selectedBoardPiece = null;
-    setupBoardState = [];
     setupAiConfig = {'r': false, 'b': false};
+    
+    // 如果有保存的状态，恢复它；否则清空棋盘
+    if (savedSetupState) {
+        setupBoardState = JSON.parse(JSON.stringify(savedSetupState.board));
+        setupAiConfig = {...savedSetupState.aiConfig};
+        setupFirstMove = savedSetupState.firstMove;
+        document.getElementById('setupFirstMove').value = setupFirstMove;
+    } else {
+        setupBoardState = [];
+        setupFirstMove = 'r';
+    }
     
     // 创建棋盘
     createSetupBoard();
@@ -68,12 +130,15 @@ function initSetupMode() {
     // 初始化棋子池
     initPiecePools();
     
-    // 清空棋盘（初始为空）
-    resetSetupBoard();
+    // 渲染棋盘
+    renderSetupBoard();
     
     // 初始化 AI 按钮
     updateSetupAiButton('r');
     updateSetupAiButton('b');
+    
+    // 初始化棋子池可用性
+    updatePiecePoolAvailability();
 }
 
 // 创建摆子棋盘
@@ -249,6 +314,7 @@ function initPiecePool(color, elementId) {
         pieceEl.dataset.color = color;
         pieceEl.dataset.type = piece.type;
         pieceEl.dataset.count = piece.count;
+        pieceEl.title = `最多 ${piece.count} 个`;
         pieceEl.onclick = (e) => onPoolPieceClick(e, color, piece.type, piece.name);
         container.appendChild(pieceEl);
     });
@@ -256,6 +322,12 @@ function initPiecePool(color, elementId) {
 
 // 棋子池点击事件
 function onPoolPieceClick(e, color, type, name) {
+    // 检查是否已达最大数量
+    if (!canAddPiece(color, type)) {
+        alert(`${name} 已达最大数量 ${MAX_PIECES[type]}`);
+        return;
+    }
+    
     // 清除棋盘选中
     clearBoardSelection();
     
@@ -290,9 +362,16 @@ function onSetupBoardClick(e) {
     const existingIndex = setupBoardState.findIndex(p => p.row === row && p.col === col);
     
     if (selectedPoolPiece) {
+        // 检查数量限制
+        if (!canAddPiece(selectedPoolPiece.color, selectedPoolPiece.type)) {
+            alert(`${selectedPoolPiece.name} 已达最大数量 ${MAX_PIECES[selectedPoolPiece.type]}`);
+            clearPoolSelection();
+            return;
+        }
+        
         // 放置棋子
         if (existingIndex >= 0) {
-            // 已有棋子，替换
+            // 已有棋子，替换（数量不变）
             setupBoardState[existingIndex] = {
                 row, col,
                 color: selectedPoolPiece.color,
@@ -308,6 +387,7 @@ function onSetupBoardClick(e) {
         }
         
         renderSetupBoard();
+        updatePiecePoolAvailability();
         clearPoolSelection();
     } else if (existingIndex >= 0) {
         // 选中棋盘上的棋子
@@ -341,6 +421,7 @@ function removePiece(row, col) {
     if (index >= 0) {
         setupBoardState.splice(index, 1);
         renderSetupBoard();
+        updatePiecePoolAvailability();
         clearBoardSelection();
     }
 }
@@ -561,6 +642,13 @@ function updateFirstMove() {
 async function startCustomGame() {
     // 更新先手方
     updateFirstMove();
+    
+    // 保存当前摆子状态
+    savedSetupState = {
+        board: JSON.parse(JSON.stringify(setupBoardState)),
+        aiConfig: {...setupAiConfig},
+        firstMove: setupFirstMove
+    };
     
     try {
         const response = await fetch('/api/games/custom', {
