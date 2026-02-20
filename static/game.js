@@ -801,21 +801,16 @@ function updateButtons() {
 // ========== 自定义模式 AI 切换 ==========
 
 function toggleAiFromGame(color) {
-    if (!currentGameId) return;
+    if (!currentGameId) {
+        console.error('没有当前游戏 ID');
+        return;
+    }
     
     const enabled = !aiEnabled[color];
+    console.log(`切换 AI: ${color === 'r' ? '红方' : '黑方'} => ${enabled ? '开' : '关'}`);
     
-    // 如果当前是该方走棋，标记为待切换
-    const statusEl = document.getElementById('gameStatus');
-    const currentPlayer = statusEl.classList.contains('red') ? 'r' : 'b';
-    
-    if (currentPlayer === color) {
-        pendingAiToggle = {color, enabled};
-        // 等待当前操作完成
-    } else {
-        // 立即切换
-        applyAiToggle(color, enabled);
-    }
+    // 立即切换
+    applyAiToggle(color, enabled);
 }
 
 async function applyAiToggle(color, enabled) {
