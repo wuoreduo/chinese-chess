@@ -6,7 +6,7 @@ let sounds = {};
 let soundEnabled = true;
 let gameType = null;
 let aiPaused = false;
-let windowInMainMenu = true;
+let aivaiFirstMove = 'r'; // AIvAI 模式先手方，默认红方
 
 const CELL_SIZE = 50;
 const BOARD_OFFSET_X = 25;
@@ -46,12 +46,23 @@ function toggleSound() {
     }
 }
 
-function selectMode(mode) {
+function selectMode(mode, firstMove = 'r') {
     gameType = mode;
+    aivaiFirstMove = firstMove;
     createGame();
     document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('aivaiMenu').style.display = 'none';
     document.getElementById('gameView').style.display = 'flex';
-    windowInMainMenu = false;
+}
+
+function showAivaiMenu() {
+    document.getElementById('mainMenu').style.display = 'none';
+    document.getElementById('aivaiMenu').style.display = 'flex';
+}
+
+function showMainMenu() {
+    document.getElementById('aivaiMenu').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'flex';
 }
 
 function backToMenu() {
@@ -66,10 +77,9 @@ function backToMenu() {
     aiPaused = false;
     
     document.getElementById('gameView').style.display = 'none';
+    document.getElementById('aivaiMenu').style.display = 'none';
     document.getElementById('mainMenu').style.display = 'flex';
-    document.getElementById('drawModal').style.display = 'none';
     document.getElementById('gameOverModal').style.display = 'none';
-    windowInMainMenu = true;
 }
 
 function createBoardSVG() {
@@ -239,18 +249,6 @@ function initSocket() {
         }
     });
     
-    socket.on('draw_proposal', (data) => {
-        if (data.game_id === currentGameId) {
-            showDrawModal();
-        }
-    });
-    
-    socket.on('draw_rejected', (data) => {
-        if (data.game_id === currentGameId) {
-            alert('对方拒绝了和棋请求');
-        }
-    });
-    
     socket.on('disconnect', () => {
         console.log('WebSocket 已断开');
     });
@@ -260,14 +258,17 @@ async function createGame() {
     window.gameOver = false;
     
     try {
+        const postData = { type: gameType };
+        if (gameType === 'aivai') {
+            postData.first_move = aivaiFirstMove;
+        }
+        
         const response = await fetch('/api/games', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                type: gameType
-            })
+            body: JSON.stringify(postData)
         });
         
         const data = await response.json();
@@ -714,7 +715,6 @@ async function restartGame() {
     }
     
     document.getElementById('gameOverModal').style.display = 'none';
-    document.getElementById('drawModal').style.display = 'none';
     window.gameOverShown = false;
     
     currentGameId = null;
@@ -751,80 +751,6 @@ async function togglePause() {
     }
 }
 
-async function proposeDraw() {
-    if (!currentGameId) return;
-    
-    try {
-        const response = await fetch(`/api/games/${currentGameId}/draw`, {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            if (data.result === 'accepted') {
-                alert('和棋成立！');
-            } else if (data.result === 'rejected') {
-                alert('对方拒绝了和棋请求');
-            } else if (data.result === 'pending') {
-                // PvP 模式，等待对方确认
-            }
-        } else {
-            alert(data.error || '求和失败');
-        }
-    } catch (error) {
-        console.error('求和失败:', error);
-    }
-}
-
-function showDrawModal() {
-    const modal = document.getElementById('drawModal');
-    modal.style.display = 'flex';
-}
-
-async function acceptDraw() {
-    if (!currentGameId) return;
-    
-    try {
-        const response = await fetch(`/api/games/${currentGameId}/draw/accept`, {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        document.getElementById('drawModal').style.display = 'none';
-        
-        if (response.ok) {
-            window.gameOverShown = false;
-            showGameOver({winner: 'draw', reason: '双方同意和棋'});
-        } else {
-            alert(data.error || '接受和棋失败');
-        }
-    } catch (error) {
-        console.error('接受和棋失败:', error);
-        document.getElementById('drawModal').style.display = 'none';
-    }
-}
-
-async function rejectDraw() {
-    if (!currentGameId) return;
-    
-    try {
-        const response = await fetch(`/api/games/${currentGameId}/draw/reject`, {
-            method: 'POST'
-        });
-        
-        document.getElementById('drawModal').style.display = 'none';
-        
-        if (!response.ok) {
-            console.error('拒绝和棋失败');
-        }
-    } catch (error) {
-        console.error('拒绝和棋失败:', error);
-        document.getElementById('drawModal').style.display = 'none';
-    }
-}
-
 async function resignGame() {
     if (!currentGameId) return;
     
@@ -839,7 +765,8 @@ async function resignGame() {
         
         if (response.ok) {
             window.gameOverShown = false;
-            showGameOver({winner: data.winner, reason: '认输'});
+            const resignerText = data.resigner === 'r' ? '红方' : '黑方';
+            showGameOver({winner: data.winner, reason: `${resignerText}认输`});
         } else {
             alert(data.error || '认输失败');
         }
@@ -850,18 +777,15 @@ async function resignGame() {
 
 function updateButtons() {
     const undoBtn = document.getElementById('undoBtn');
-    const drawBtn = document.getElementById('drawBtn');
     const resignBtn = document.getElementById('resignBtn');
     const pauseBtn = document.getElementById('pauseBtn');
     
     if (gameType === 'aivai') {
         undoBtn.style.display = 'none';
-        drawBtn.style.display = 'none';
         resignBtn.style.display = 'none';
         pauseBtn.style.display = 'inline-block';
     } else {
         undoBtn.style.display = 'inline-block';
-        drawBtn.style.display = 'inline-block';
         resignBtn.style.display = 'inline-block';
         pauseBtn.style.display = 'none';
     }

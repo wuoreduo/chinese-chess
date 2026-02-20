@@ -24,7 +24,7 @@
                 <span class="subtext">PvAI Mode</span>
             </button>
             
-            <button class="mode-btn aivai" onclick="selectMode('aivai')">
+            <button class="mode-btn aivai" onclick="showAivaiMenu()">
                 <span class="icon">⚙️</span>
                 <span class="text">机机对战</span>
                 <span class="subtext">AIvAI Mode</span>
@@ -32,6 +32,31 @@
         </div>
         
         <div class="footer-deco">楚河 ⋅ 汉界</div>
+    </div>
+
+    <!-- AIvAI 先手选择菜单 -->
+    <div id="aivaiMenu" class="main-menu" style="display: none;">
+        <h2 class="submenu-title">选择先手方</h2>
+        
+        <div class="mode-buttons">
+            <button class="mode-btn" onclick="selectMode('aivai', 'r')">
+                <span class="icon">⚔️</span>
+                <span class="text">红方先手</span>
+                <span class="subtext">Red First</span>
+            </button>
+            
+            <button class="mode-btn" onclick="selectMode('aivai', 'b')">
+                <span class="icon">⚔️</span>
+                <span class="text">黑方先手</span>
+                <span class="subtext">Black First</span>
+            </button>
+            
+            <button class="mode-btn" onclick="showMainMenu()">
+                <span class="icon">↩️</span>
+                <span class="text">返回</span>
+                <span class="subtext">Back</span>
+            </button>
+        </div>
     </div>
 
     <!-- 游戏界面 -->
@@ -48,21 +73,9 @@
         
         <div class="action-buttons">
             <button onclick="undoMove()" id="undoBtn">♟️ 悔棋</button>
-            <button onclick="proposeDraw()" id="drawBtn">🤝 求和</button>
             <button onclick="resignGame()" id="resignBtn">🏳️ 认输</button>
             <button onclick="togglePause()" id="pauseBtn" style="display: none;">⏸️ 暂停</button>
             <button onclick="restartGame()">🔄 重开</button>
-        </div>
-    </div>
-
-    <!-- 求和确认弹窗 -->
-    <div id="drawModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <p class="modal-text">对方请求和棋，是否接受？</p>
-            <div class="modal-buttons">
-                <button class="modal-btn accept" onclick="acceptDraw()">✅ 接受</button>
-                <button class="modal-btn reject" onclick="rejectDraw()">❌ 拒绝</button>
-            </div>
         </div>
     </div>
 
