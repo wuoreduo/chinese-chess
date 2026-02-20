@@ -55,6 +55,7 @@ function createBoardSVG() {
     const g = document.createElementNS(svgNS, "g");
     svg.appendChild(g);
     
+    // 绘制竖线 - 全部贯通（包括楚河汉界）
     for (let i = 0; i <= 8; i++) {
         const line = document.createElementNS(svgNS, "line");
         line.setAttribute("x1", BOARD_OFFSET_X + i * CELL_SIZE);
@@ -66,8 +67,20 @@ function createBoardSVG() {
         g.appendChild(line);
     }
     
+    // 绘制横线
     for (let i = 0; i <= 9; i++) {
         if (i === 0 || i === 9) {
+            // 最上和最下的横线 - 贯通整个棋盘
+            const line = document.createElementNS(svgNS, "line");
+            line.setAttribute("x1", BOARD_OFFSET_X);
+            line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line.setAttribute("x2", BOARD_OFFSET_X + 8 * CELL_SIZE);
+            line.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line.setAttribute("stroke", "#5a3d2b");
+            line.setAttribute("stroke-width", "1.5");
+            g.appendChild(line);
+        } else if (i < 5) {
+            // 上半区域横线（第 1-4 行）- 贯通
             const line = document.createElementNS(svgNS, "line");
             line.setAttribute("x1", BOARD_OFFSET_X);
             line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
@@ -77,23 +90,15 @@ function createBoardSVG() {
             line.setAttribute("stroke-width", "1.5");
             g.appendChild(line);
         } else {
-            const line1 = document.createElementNS(svgNS, "line");
-            line1.setAttribute("x1", BOARD_OFFSET_X);
-            line1.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
-            line1.setAttribute("x2", BOARD_OFFSET_X + 3.5 * CELL_SIZE);
-            line1.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
-            line1.setAttribute("stroke", "#5a3d2b");
-            line1.setAttribute("stroke-width", "1.5");
-            g.appendChild(line1);
-            
-            const line2 = document.createElementNS(svgNS, "line");
-            line2.setAttribute("x1", BOARD_OFFSET_X + 4.5 * CELL_SIZE);
-            line2.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
-            line2.setAttribute("x2", BOARD_OFFSET_X + 8 * CELL_SIZE);
-            line2.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
-            line2.setAttribute("stroke", "#5a3d2b");
-            line2.setAttribute("stroke-width", "1.5");
-            g.appendChild(line2);
+            // 下半区域横线（第 6-8 行）- 贯通
+            const line = document.createElementNS(svgNS, "line");
+            line.setAttribute("x1", BOARD_OFFSET_X);
+            line.setAttribute("y1", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line.setAttribute("x2", BOARD_OFFSET_X + 8 * CELL_SIZE);
+            line.setAttribute("y2", BOARD_OFFSET_Y + i * CELL_SIZE);
+            line.setAttribute("stroke", "#5a3d2b");
+            line.setAttribute("stroke-width", "1.5");
+            g.appendChild(line);
         }
     }
     
@@ -346,26 +351,42 @@ function onPieceClick(row, col, piece) {
     if (!currentGameId) return;
     
     const gameInfo = document.getElementById('currentPlayer');
-    const isCurrentPlayer = (piece.color === 'r' && gameInfo.classList.contains('red')) ||
-                            (piece.color === 'b' && gameInfo.classList.contains('black'));
+    const currentPlayer = gameInfo.classList.contains('red') ? 'r' : 'b';
     
-    if (!isCurrentPlayer) {
-        if (selectedPiece) {
-            makeMove(row, col);
-            return;
+    // 如果当前没有选中棋子，且点击的是己方棋子
+    if (!selectedPiece) {
+        if (piece.color !== currentPlayer) {
+            return; // 不能选对方的棋子
         }
+        playSound('click');
+        selectedPiece = [row, col];
+        calculateValidMoves(row, col, piece);
+        renderPiecesWithSelection();
         return;
     }
     
-    if (selectedPiece && selectedPiece[0] === row && selectedPiece[1] === col) {
+    // 如果已经选中了棋子
+    const selectedRow = selectedPiece[0];
+    const selectedCol = selectedPiece[1];
+    const selectedPieceObj = window.currentBoard[selectedRow][selectedCol];
+    
+    // 如果点击的是同一个棋子，取消选中
+    if (selectedRow === row && selectedCol === col) {
         clearSelection();
         return;
     }
     
-    playSound('click');
-    selectedPiece = [row, col];
-    calculateValidMoves(row, col, piece);
-    renderPiecesWithSelection();
+    // 如果点击的是己方其他棋子，切换选中
+    if (piece.color === currentPlayer) {
+        playSound('click');
+        selectedPiece = [row, col];
+        calculateValidMoves(row, col, piece);
+        renderPiecesWithSelection();
+        return;
+    }
+    
+    // 如果点击的是对方棋子，尝试吃子
+    makeMove(row, col);
 }
 
 function calculateValidMoves(row, col, piece) {

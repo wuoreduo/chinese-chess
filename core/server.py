@@ -42,11 +42,8 @@ def ai_move_task(game_id, ai_color):
     
     game = games[game_id]
     
-    # 获取对应颜色的 AI
-    if ai_color == 'r':
-        ai = ai_players.get(game_id)
-    else:
-        ai = ai_players.get(f'{game_id}_black')
+    # 获取 AI 实例
+    ai = ai_players.get(game_id)
     
     if not ai or game.game_over:
         return
@@ -202,7 +199,8 @@ def make_move(game_id):
         })
         
         if game_id in ai_players and not game.game_over:
-            ai_color = ai_players[game_id].color
+            ai = ai_players[game_id]
+            ai_color = ai.color
             if game.current_player == ai_color:
                 if game_id not in ai_threads or not ai_threads[game_id].is_alive():
                     thread = threading.Thread(target=ai_move_task, args=(game_id, ai_color), daemon=True)

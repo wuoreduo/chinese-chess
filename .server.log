@@ -1,5 +1,5 @@
 Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
-BASE_DIR: /home/ubuntu/opencode_test/中国象棋
+Project root: /home/ubuntu/opencode_test/中国象棋
 Static folder: /home/ubuntu/opencode_test/中国象棋/static
  * Serving Flask app 'server'
  * Debug mode: off
@@ -8,9 +8,26 @@ WARNING: This is a development server. Do not use it in a production deployment.
  * Running on http://127.0.0.1:5000
  * Running on http://10.0.0.3:5000
 Press CTRL+C to quit
-127.0.0.1 - - [20/Feb/2026 18:02:39] "GET /socket.io/?EIO=4&transport=polling&t=PnwW5yg HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 18:02:39] "POST /socket.io/?EIO=4&transport=polling&t=PnwW5yl&sid=2dx2floSf2ygXCNPAAAA HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 18:02:39] "GET /socket.io/?EIO=4&transport=polling&t=PnwW5ym&sid=2dx2floSf2ygXCNPAAAA HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 18:02:39] "GET /socket.io/?EIO=4&transport=polling&t=PnwW5yu&sid=2dx2floSf2ygXCNPAAAA HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 18:02:40] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 18:02:42] "GET /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:04] "GET /socket.io/?EIO=4&transport=polling&t=Pnw-t5l HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:04] "POST /socket.io/?EIO=4&transport=polling&t=Pnw-t5q&sid=yqVIzbNC3Lq_DLwxAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:04] "GET /socket.io/?EIO=4&transport=polling&t=Pnw-t5r&sid=yqVIzbNC3Lq_DLwxAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:04] "GET /socket.io/?EIO=4&transport=polling&t=Pnw-t5-&sid=yqVIzbNC3Lq_DLwxAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:12] "POST /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:22] "POST /api/games/18/move HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:24] "GET /api/games/18 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /socket.io/?EIO=4&transport=websocket&sid=yqVIzbNC3Lq_DLwxAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /style.css HTTP/1.1" 304 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /game.js HTTP/1.1" 304 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /socket.io/?EIO=4&transport=polling&t=Pnw--HT HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /sounds/click.wav HTTP/1.1" 206 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /sounds/move.wav HTTP/1.1" 206 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /sounds/capture.wav HTTP/1.1" 206 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /sounds/check.wav HTTP/1.1" 206 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "POST /socket.io/?EIO=4&transport=polling&t=Pnw--Ht&sid=akoLB-oiKjod-pzeAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /socket.io/?EIO=4&transport=polling&t=Pnw--Hw&sid=akoLB-oiKjod-pzeAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /socket.io/?EIO=4&transport=polling&t=Pnw--IY&sid=akoLB-oiKjod-pzeAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /socket.io/?EIO=4&transport=polling&t=Pnw--If&sid=akoLB-oiKjod-pzeAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:34] "GET /socket.io/?EIO=4&transport=polling&t=Pnw--Il&sid=akoLB-oiKjod-pzeAAAC HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:39] "POST /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 20:17:39] "GET /api/games/19 HTTP/1.1" 200 -
