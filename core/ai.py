@@ -109,9 +109,11 @@ class ChessAI:
                     break
             return min_eval
     
-    def get_best_move(self, game):
+    def get_best_move(self, game, force_break=False):
         """
         获取最佳走法
+        :param game: 当前游戏状态
+        :param force_break: 是否强制打破循环
         :return: (from_row, from_col, to_row, to_col) 或 None
         """
         moves = game.get_all_moves(self.color)
@@ -126,9 +128,9 @@ class ChessAI:
         current_fen = game.get_board_fen()
         in_repetition = game.is_repetition(current_fen)
         
-        # 如果在循环中，增加随机性并避免导致重复的走法
-        if in_repetition:
-            return self._get_anti_repetition_move(game, moves)
+        # 如果在循环中或强制变招，增加随机性并避免导致重复的走法
+        if in_repetition or force_break:
+            return self._get_anti_repetition_move(game, moves, force_break)
         
         best_move = None
         best_eval = float('-inf')
@@ -150,11 +152,12 @@ class ChessAI:
         
         return best_move if best_move else random.choice(moves)
     
-    def _get_anti_repetition_move(self, game, moves):
+    def _get_anti_repetition_move(self, game, moves, force_break=False):
         """
         获取打破循环的走法
         :param game: 当前游戏状态
         :param moves: 所有合法走法
+        :param force_break: 是否强制打破循环
         :return: 最佳走法
         """
         # 过滤掉会导致重复局面的走法
@@ -187,6 +190,25 @@ class ChessAI:
             
             return best_move if best_move else random.choice(non_repeating_moves)
         else:
-            # 如果所有走法都会重复，增加随机性选择
+            # 如果所有走法都会重复，force_break 时选择评估值变化最大的走法
+            # 否则增加随机性选择
+            if force_break and len(moves) > 1:
+                # 选择能带来最大变化的走法（通过评估走棋后的局面差异）
+                best_change_move = None
+                max_change = float('-inf')
+                
+                for move in moves:
+                    fr, fc, tr, tc = move
+                    new_game = game.copy()
+                    new_game.make_move(fr, fc, tr, tc)
+                    # 使用评估值的绝对变化作为变化度量
+                    change = abs(self.evaluate(new_game) - self.evaluate(game))
+                    if change > max_change:
+                        max_change = change
+                        best_change_move = move
+                
+                if best_change_move:
+                    return best_change_move
+            
             random.shuffle(moves)
             return moves[0]

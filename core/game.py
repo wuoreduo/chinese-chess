@@ -235,9 +235,11 @@ class ChineseChess:
         }
         self.move_history.append(move)
         
+        # 记录当前局面到历史（用于检测重复）
         current_fen = self.get_board_fen()
         self.position_history.append(current_fen)
-        if len(self.position_history) > self.max_history:
+        # 保持历史记录长度，但至少要保留足够的记录来检测三次重复
+        if len(self.position_history) > self.max_history * 2:
             self.position_history.pop(0)
         
         if captured and captured[1] == 'k':

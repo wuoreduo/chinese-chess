@@ -432,8 +432,13 @@ function showGameOver(data) {
         textEl.textContent = '🤝 和棋！双方握手言和';
     } else if (data.winner) {
         const winnerText = data.winner === 'r' ? '红方' : '黑方';
-        const reason = data.reason || '获胜';
-        textEl.textContent = `🏆 ${winnerText}${reason}！`;
+        // 检查是否是认输情况
+        if (data.reason && data.reason.includes('认输')) {
+            textEl.textContent = `🏆 ${winnerText}获胜！（${data.reason}）`;
+        } else {
+            const reason = data.reason || '获胜';
+            textEl.textContent = `🏆 ${winnerText}${reason}！`;
+        }
     } else {
         textEl.textContent = '游戏结束';
     }

@@ -38,6 +38,7 @@ games = {}
 ai_players = {}
 ai_threads = {}
 ai_paused = {}
+repetition_count = {}  # 记录每局游戏的连续重复次数
 
 
 def ai_move_task(game_id, ai_color):
@@ -65,7 +66,41 @@ def ai_move_task(game_id, ai_color):
     if game.current_player != ai_color:
         return
     
-    best_move = ai.get_best_move(game)
+    # 检测循环局面：检查当前局面是否在历史中多次出现
+    current_fen = game.get_board_fen()
+    rep_count = game.get_repetition_count(current_fen)
+    
+    # 更新连续重复计数
+    if rep_count >= 2:
+        repetition_count[game_id] = repetition_count.get(game_id, 0) + 1
+    else:
+        repetition_count[game_id] = 0
+    
+    # 如果连续重复超过 6 次（12 个回合），强制 AI 变招
+    force_break = repetition_count.get(game_id, 0) >= 6
+    
+    # 检测长将/困毙：如果同一局面重复 4 次，判和（仅当双方都没有进攻棋子时）
+    if rep_count >= 4:
+        # 简化判断：如果双方都只剩下将/帅和士/仕，判和
+        red_attack = sum(1 for r in range(10) for c in range(9) 
+                        if game.board[r][c] and game.board[r][c][0] == 'r' 
+                        and game.board[r][c][1] not in ('k', 'a'))
+        black_attack = sum(1 for r in range(10) for c in range(9) 
+                          if game.board[r][c] and game.board[r][c][0] == 'b' 
+                          and game.board[r][c][1] not in ('k', 'a'))
+        
+        if red_attack == 0 and black_attack == 0:
+            game.game_over = True
+            game.winner = 'draw'
+            db.save_game_state(game_id, game)
+            socketio.emit('game_over', {
+                'game_id': game_id,
+                'winner': 'draw',
+                'reason': '双方无进攻棋子，循环重复判和'
+            })
+            return
+    
+    best_move = ai.get_best_move(game, force_break=force_break)
     
     if best_move:
         fr, fc, tr, tc = best_move
@@ -95,6 +130,15 @@ def ai_move_task(game_id, ai_color):
                 'winner': game.winner,
                 'last_move': {'from': (fr, fc), 'to': (tr, tc)}
             })
+            
+            # 游戏结束时发送 game_over 事件
+            if game.game_over:
+                socketio.emit('game_over', {
+                    'game_id': game_id,
+                    'winner': game.winner,
+                    'reason': f'{"红方" if game.winner == "r" else "黑方"}获胜'
+                })
+                return
             
             # AI vs AI 模式下触发下一个 AI
             # 当前走棋的是 ai_color，走完后 current_player 变为对方
@@ -326,7 +370,7 @@ def resign_game(game_id):
     
     current_player = game.current_player
     winner = 'b' if current_player == 'r' else 'r'
-    resigner = 'r' if current_player == 'r' else 'b'
+    resigner = current_player
     
     # 设置游戏结束
     game.game_over = True
