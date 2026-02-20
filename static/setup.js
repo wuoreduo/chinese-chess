@@ -74,31 +74,6 @@ function initSetupMode() {
     // 初始化 AI 按钮
     updateSetupAiButton('r');
     updateSetupAiButton('b');
-    
-    // 显示操作提示
-    showSetupTip();
-}
-
-// 显示操作提示
-function showSetupTip() {
-    const board = document.getElementById('setupBoard');
-    let tipEl = board.querySelector('.setup-tip');
-    if (!tipEl) {
-        tipEl = document.createElement('div');
-        tipEl.className = 'setup-tip';
-        tipEl.textContent = '右键点击棋子可删除';
-        tipEl.style.position = 'absolute';
-        tipEl.style.bottom = '10px';
-        tipEl.style.left = '50%';
-        tipEl.style.transform = 'translateX(-50%)';
-        tipEl.style.background = 'rgba(0,0,0,0.7)';
-        tipEl.style.color = 'white';
-        tipEl.style.padding = '5px 10px';
-        tipEl.style.borderRadius = '4px';
-        tipEl.style.fontSize = '12px';
-        tipEl.style.pointerEvents = 'none';
-        board.appendChild(tipEl);
-    }
 }
 
 // 创建摆子棋盘

@@ -905,6 +905,21 @@ body {
     color: #5a3d2b;
 }
 
+.setup-tip {
+    background: rgba(139, 90, 43, 0.15);
+    border-radius: 4px;
+    padding: 8px 15px;
+    margin: 10px 5px;
+    text-align: center;
+}
+
+.setup-tip p {
+    margin: 0;
+    font-size: 13px;
+    color: #5a3d2b;
+    line-height: 1.5;
+}
+
 .ai-toggle-buttons {
     display: flex;
     gap: 10px;
