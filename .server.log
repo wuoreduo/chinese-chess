@@ -1,0 +1,16 @@
+Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+BASE_DIR: /home/ubuntu/opencode_test/中国象棋
+Static folder: /home/ubuntu/opencode_test/中国象棋/static
+ * Serving Flask app 'server'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.0.0.3:5000
+Press CTRL+C to quit
+127.0.0.1 - - [20/Feb/2026 18:02:39] "GET /socket.io/?EIO=4&transport=polling&t=PnwW5yg HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 18:02:39] "POST /socket.io/?EIO=4&transport=polling&t=PnwW5yl&sid=2dx2floSf2ygXCNPAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 18:02:39] "GET /socket.io/?EIO=4&transport=polling&t=PnwW5ym&sid=2dx2floSf2ygXCNPAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 18:02:39] "GET /socket.io/?EIO=4&transport=polling&t=PnwW5yu&sid=2dx2floSf2ygXCNPAAAA HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 18:02:40] "GET /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [20/Feb/2026 18:02:42] "GET /api/games HTTP/1.1" 200 -

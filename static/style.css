@@ -1,0 +1,263 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.game-setup {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-group label {
+    font-weight: bold;
+    color: #555;
+}
+
+.form-group select {
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+#createGame {
+    background: #667eea;
+    color: white;
+}
+
+#createGame:hover {
+    background: #5568d3;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.controls button {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.controls button:hover:not(:disabled) {
+    background: #e0e0e0;
+}
+
+.controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+#currentPlayer {
+    font-weight: bold;
+    color: #e74c3c;
+}
+
+#gameStatus {
+    color: #27ae60;
+}
+
+.board-container {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background: #f5deb3;
+    border-radius: 5px;
+    border: 3px solid #8b4513;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(9, 50px);
+    grid-template-rows: repeat(10, 50px);
+    gap: 0;
+    position: relative;
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.cell::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #8b4513;
+    z-index: 0;
+}
+
+.cell::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #8b4513;
+    z-index: 0;
+}
+
+.cell:first-child::before,
+.cell:nth-child(9n)::before {
+    display: none;
+}
+
+.cell:nth-child(-n+9)::after,
+.cell:nth-last-child(-n+9)::after {
+    display: none;
+}
+
+.piece {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.piece:hover {
+    transform: scale(1.1);
+}
+
+.piece.selected {
+    transform: scale(1.15);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+}
+
+.piece.red {
+    background: #f5deb3;
+    color: #c00;
+    border: 2px solid #c00;
+}
+
+.piece.black {
+    background: #f5deb3;
+    color: #000;
+    border: 2px solid #000;
+}
+
+.cell.highlight {
+    background: rgba(0, 255, 0, 0.3);
+}
+
+.cell.highlight::before,
+.cell.highlight::after {
+    background: transparent;
+}
+
+.last-move {
+    background: rgba(255, 255, 0, 0.3);
+}
+
+.last-move::before,
+.last-move::after {
+    background: transparent;
+}
+
+.curl-help {
+    margin-top: 30px;
+    padding: 15px;
+    background: #2d2d2d;
+    border-radius: 5px;
+    color: #f8f8f2;
+}
+
+.curl-help h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.curl-help pre {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+@media (max-width: 550px) {
+    .board {
+        grid-template-columns: repeat(9, 40px);
+        grid-template-rows: repeat(10, 40px);
+    }
+    
+    .cell {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .piece {
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+    }
+}

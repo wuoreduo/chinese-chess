@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国象棋</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>中国象棋</h1>
+        
+        <div class="game-setup">
+            <div class="form-group">
+                <label>游戏模式:</label>
+                <select id="gameType">
+                    <option value="pvp">人人对战</option>
+                    <option value="pvai">人机对战</option>
+                    <option value="aivai">机机对战</option>
+                </select>
+            </div>
+            <button id="createGame" onclick="createGame()">创建游戏</button>
+        </div>
+        
+        <div id="gameInfo" class="game-info" style="display: none;">
+            <span id="currentPlayer">当前：红方</span>
+            <span id="gameStatus"></span>
+        </div>
+        
+        <div class="board-container">
+            <div id="board" class="board"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="undoBtn" onclick="undoMove()" disabled>悔棋</button>
+            <button id="restartBtn" onclick="restartGame()">重新开始</button>
+        </div>
+        
+        <div class="curl-help">
+            <h3>curl 指令示例:</h3>
+            <pre id="curlExample">
+# 创建游戏
+curl -X POST http://localhost:5000/api/games \
+  -H "Content-Type: application/json" \
+  -d '{"type": "pvai"}'
+
+# 走棋
+curl -X POST http://localhost:5000/api/games/1/move \
+  -H "Content-Type: application/json" \
+  -d '{"from": [6, 4], "to": [5, 4]}'
+
+# 获取游戏状态
+curl http://localhost:5000/api/games/1
+
+# 悔棋
+curl -X POST http://localhost:5000/api/games/1/undo
+
+# 获取 FEN
+curl http://localhost:5000/api/games/1/fen
+            </pre>
+        </div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script src="/game.js"></script>
+</body>
+</html>
