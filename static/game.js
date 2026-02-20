@@ -320,24 +320,54 @@ function renderPieces(board) {
 }
 
 function updateBoard(data) {
+    const oldBoard = window.currentBoard;
     renderPieces(data.board);
     
     if (data.last_move) {
         const boardEl = document.getElementById('board');
+        const { from, to } = data.last_move;
+        const [fromRow, fromCol] = from;
+        const [toRow, toCol] = to;
         
-        const fromPos = getPiecePosition(data.last_move.from[0], data.last_move.from[1]);
+        const piece = data.board[toRow][toCol];
+        const isCapture = oldBoard && oldBoard[fromRow][fromCol] && 
+                          oldBoard[toRow][toCol] === null;
+        
+        const fromPos = getPiecePosition(fromRow, fromCol);
         const fromEl = document.createElement('div');
         fromEl.className = 'last-move-from';
         fromEl.style.left = fromPos.x + 'px';
         fromEl.style.top = fromPos.y + 'px';
         boardEl.appendChild(fromEl);
         
-        const toPos = getPiecePosition(data.last_move.to[0], data.last_move.to[1]);
+        const toPos = getPiecePosition(toRow, toCol);
         const toEl = document.createElement('div');
         toEl.className = 'last-move-to';
         toEl.style.left = toPos.x + 'px';
         toEl.style.top = toPos.y + 'px';
         boardEl.appendChild(toEl);
+        
+        const pieceEl = boardEl.querySelector(`.piece[data-row="${toRow}"][data-col="${toCol}"]`);
+        if (pieceEl) {
+            pieceEl.style.left = fromPos.x + 'px';
+            pieceEl.style.top = fromPos.y + 'px';
+            pieceEl.classList.add('moving');
+            
+            setTimeout(() => {
+                pieceEl.style.left = toPos.x + 'px';
+                pieceEl.style.top = toPos.y + 'px';
+            }, 50);
+            
+            setTimeout(() => {
+                pieceEl.classList.remove('moving');
+            }, 350);
+        }
+        
+        if (isCapture) {
+            playSound('capture');
+        } else {
+            playSound('move');
+        }
     }
 }
 
