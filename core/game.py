@@ -13,12 +13,14 @@ class ChineseChess:
         'b': {'k': '将', 'a': '士', 'b': '象', 'n': '马', 'r': '车', 'c': '炮', 'p': '卒'}
     }
     
-    def __init__(self):
+    def __init__(self, max_history=6):
         self.board = self.init_board()
         self.current_player = self.RED
         self.game_over = False
         self.winner = None
         self.move_history = []
+        self.position_history = []
+        self.max_history = max_history
     
     def init_board(self):
         """初始化棋盘"""
@@ -233,6 +235,11 @@ class ChineseChess:
         }
         self.move_history.append(move)
         
+        current_fen = self.get_board_fen()
+        self.position_history.append(current_fen)
+        if len(self.position_history) > self.max_history:
+            self.position_history.pop(0)
+        
         if captured and captured[1] == 'k':
             self.game_over = True
             self.winner = piece[0]
@@ -258,6 +265,9 @@ class ChineseChess:
         if self.winner:
             self.game_over = False
             self.winner = None
+        
+        if self.position_history:
+            self.position_history.pop()
         
         return True
     
@@ -328,4 +338,14 @@ class ChineseChess:
         new_game.game_over = self.game_over
         new_game.winner = self.winner
         new_game.move_history = self.move_history[:]
+        new_game.position_history = self.position_history[:]
+        new_game.max_history = self.max_history
         return new_game
+    
+    def is_repetition(self, fen):
+        """检测局面重复"""
+        return self.position_history.count(fen) >= 2
+    
+    def get_repetition_count(self, fen):
+        """获取局面重复次数"""
+        return self.position_history.count(fen)

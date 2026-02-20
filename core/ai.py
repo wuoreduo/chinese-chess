@@ -3,7 +3,7 @@
 """
 
 import random
-from game import ChineseChess
+from .game import ChineseChess
 
 
 class ChessAI:
@@ -118,6 +118,14 @@ class ChessAI:
         if len(moves) == 1:
             return moves[0]
         
+        # 检测是否处于循环局面
+        current_fen = game.get_board_fen()
+        in_repetition = game.is_repetition(current_fen)
+        
+        # 如果在循环中，增加随机性并避免导致重复的走法
+        if in_repetition:
+            return self._get_anti_repetition_move(game, moves)
+        
         best_move = None
         best_eval = float('-inf')
         alpha = float('-inf')
@@ -137,3 +145,44 @@ class ChessAI:
                 alpha = max(alpha, eval_score)
         
         return best_move if best_move else random.choice(moves)
+    
+    def _get_anti_repetition_move(self, game, moves):
+        """
+        获取打破循环的走法
+        :param game: 当前游戏状态
+        :param moves: 所有合法走法
+        :return: 最佳走法
+        """
+        # 过滤掉会导致重复局面的走法
+        non_repeating_moves = []
+        for move in moves:
+            fr, fc, tr, tc = move
+            new_game = game.copy()
+            new_game.make_move(fr, fc, tr, tc)
+            new_fen = new_game.get_board_fen()
+            if not game.is_repetition(new_fen):
+                non_repeating_moves.append(move)
+        
+        # 如果有不重复的走法，从中选择最佳的
+        if non_repeating_moves:
+            best_move = None
+            best_eval = float('-inf')
+            alpha = float('-inf')
+            beta = float('inf')
+            
+            for move in non_repeating_moves:
+                fr, fc, tr, tc = move
+                new_game = game.copy()
+                new_game.make_move(fr, fc, tr, tc)
+                eval_score = self.minimax(new_game, self.depth - 1, alpha, beta, False)
+                
+                if eval_score > best_eval:
+                    best_eval = eval_score
+                    best_move = move
+                    alpha = max(alpha, eval_score)
+            
+            return best_move if best_move else random.choice(non_repeating_moves)
+        else:
+            # 如果所有走法都会重复，增加随机性选择
+            random.shuffle(moves)
+            return moves[0]
