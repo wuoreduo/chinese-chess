@@ -507,6 +507,7 @@ function isValidPosition(row, col) {
 }
 
 function isBlocked(row, col) {
+    if (!isValidPosition(row, col)) return false; // 棋盘外不算阻挡
     return getPieceAt(row, col) !== null;
 }
 
