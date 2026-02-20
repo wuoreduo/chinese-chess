@@ -428,8 +428,8 @@ function calculateValidMoves(row, col, piece) {
     
     for (const [dr, dc] of dirs) {
         if (piece.type === 'r' || piece.type === 'c') {
-            // 车/炮：沿方向一直走
             let steps = 1;
+            let obstacleCount = 0;
             while (true) {
                 const nr = row + dr * steps;
                 const nc = col + dc * steps;
@@ -441,8 +441,7 @@ function calculateValidMoves(row, col, piece) {
                     if (piece.type === 'r') {
                         validMoves.push([nr, nc]);
                     } else {
-                        const count = countObstacles(row, col, nr, nc);
-                        if (count === 0) {
+                        if (obstacleCount === 0) {
                             validMoves.push([nr, nc]);
                         }
                     }
@@ -453,11 +452,13 @@ function calculateValidMoves(row, col, piece) {
                         }
                         break;
                     } else {
-                        const count = countObstacles(row, col, nr, nc);
-                        if (count === 1 && target.color !== piece.color) {
+                        if (obstacleCount === 1 && target.color !== piece.color) {
                             validMoves.push([nr, nc]);
                         }
-                        break;
+                        obstacleCount++;
+                        if (obstacleCount > 1) {
+                            break;
+                        }
                     }
                 }
                 steps++;
