@@ -392,43 +392,28 @@ function onPieceClick(row, col, piece) {
 function calculateValidMoves(row, col, piece) {
     validMoves = [];
     
+    // 兵的方向：红兵向上（-1），黑卒向下（+1）
+    const pawnDir = piece.color === 'r' ? -1 : 1;
+    
     const directions = {
         'r': [[0, 1], [0, -1], [1, 0], [-1, 0]],
         'n': [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]],
         'c': [[0, 1], [0, -1], [1, 0], [-1, 0]],
         'a': [[-1, -1], [-1, 1], [1, -1], [1, 1]],
         'k': [[0, 1], [0, -1], [1, 0], [-1, 0]],
-        'p': [[-1, 0], [0, 1], [0, -1]],
+        'p': [[pawnDir, 0]], // 兵/卒只能向前走
         'b': [[-2, -2], [-2, 2], [2, -2], [2, 2]]
     };
     
     const dirs = directions[piece.type] || [];
     
     for (const [dr, dc] of dirs) {
-        let nr = row + dr;
-        let nc = col + dc;
-        
-        if (piece.type === 'n') {
-            const legR = row + Math.sign(dr);
-            const legC = col + Math.sign(dc);
-            if (isBlocked(legR, legC)) continue;
-        }
-        
-        if (piece.type === 'b') {
-            const eyeR = row + Math.sign(dr);
-            const eyeC = col + Math.sign(dc);
-            if (isBlocked(eyeR, eyeC)) continue;
-        }
-        
-        if (isValidPosition(nr, nc) && canMoveOrCapture(row, col, nr, nc, piece)) {
-            validMoves.push([nr, nc]);
-        }
-        
         if (piece.type === 'r' || piece.type === 'c') {
+            // 车/炮：沿方向一直走
             let steps = 1;
             while (true) {
-                nr = row + dr * steps;
-                nc = col + dc * steps;
+                const nr = row + dr * steps;
+                const nc = col + dc * steps;
                 
                 if (!isValidPosition(nr, nc)) break;
                 
@@ -458,15 +443,33 @@ function calculateValidMoves(row, col, piece) {
                 }
                 steps++;
             }
+        } else {
+            // 其他棋子：只走一步
+            let nr = row + dr;
+            let nc = col + dc;
+            
+            if (piece.type === 'n') {
+                const legR = row + Math.sign(dr);
+                const legC = col + Math.sign(dc);
+                if (isBlocked(legR, legC)) continue;
+            }
+            
+            if (piece.type === 'b') {
+                const eyeR = row + Math.sign(dr);
+                const eyeC = col + Math.sign(dc);
+                if (isBlocked(eyeR, eyeC)) continue;
+            }
+            
+            if (isValidPosition(nr, nc) && canMoveOrCapture(row, col, nr, nc, piece)) {
+                validMoves.push([nr, nc]);
+            }
         }
     }
     
+    // 兵/卒过河后可以横走
     if (piece.type === 'p') {
-        if (piece.color === 'r' && row >= 5) {
-            if (isValidPosition(row, col - 1)) validMoves.push([row, col - 1]);
-            if (isValidPosition(row, col + 1)) validMoves.push([row, col + 1]);
-        }
-        if (piece.color === 'b' && row <= 4) {
+        // 红兵过河（row < 5）或黑卒过河（row > 4）可以横走
+        if ((piece.color === 'r' && row < 5) || (piece.color === 'b' && row > 4)) {
             if (isValidPosition(row, col - 1)) validMoves.push([row, col - 1]);
             if (isValidPosition(row, col + 1)) validMoves.push([row, col + 1]);
         }
