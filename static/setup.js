@@ -7,10 +7,8 @@ let setupMode = false;
 let selectedPoolPiece = null;  // 从棋子池选中的棋子 {color, type, name}
 let selectedBoardPiece = null; // 从棋盘选中的棋子 {row, col, color, type}
 let setupBoardState = [];      // 当前棋盘状态
-let setupModeConfig = {
-    ai_config: {'r': false, 'b': false},
-    first_move: 'r'
-};
+let setupAiConfig = {'r': false, 'b': false};  // AI 开关状态
+let setupFirstMove = 'r';  // 先手方
 
 // 棋子数据
 const PIECE_DATA = {
@@ -62,6 +60,7 @@ function initSetupMode() {
     selectedPoolPiece = null;
     selectedBoardPiece = null;
     setupBoardState = [];
+    setupAiConfig = {'r': false, 'b': false};
     
     // 创建棋盘
     createSetupBoard();
@@ -69,8 +68,12 @@ function initSetupMode() {
     // 初始化棋子池
     initPiecePools();
     
-    // 加载初始局面
-    resetToInitial();
+    // 清空棋盘（初始为空）
+    resetSetupBoard();
+    
+    // 初始化 AI 按钮
+    updateSetupAiButton('r');
+    updateSetupAiButton('b');
 }
 
 // 创建摆子棋盘
@@ -445,48 +448,8 @@ function resetSetupBoard() {
 // 重置到初始局面
 function resetToInitial() {
     resetSetupBoard();
-    
-    // 标准开局棋子位置
-    const initialPieces = [
-        // 黑方
-        {row: 0, col: 0, color: 'b', type: 'r'},
-        {row: 0, col: 1, color: 'b', type: 'n'},
-        {row: 0, col: 2, color: 'b', type: 'b'},
-        {row: 0, col: 3, color: 'b', type: 'a'},
-        {row: 0, col: 4, color: 'b', type: 'k'},
-        {row: 0, col: 5, color: 'b', type: 'a'},
-        {row: 0, col: 6, color: 'b', type: 'b'},
-        {row: 0, col: 7, color: 'b', type: 'n'},
-        {row: 0, col: 8, color: 'b', type: 'r'},
-        {row: 2, col: 1, color: 'b', type: 'c'},
-        {row: 2, col: 7, color: 'b', type: 'c'},
-        {row: 3, col: 0, color: 'b', type: 'p'},
-        {row: 3, col: 2, color: 'b', type: 'p'},
-        {row: 3, col: 4, color: 'b', type: 'p'},
-        {row: 3, col: 6, color: 'b', type: 'p'},
-        {row: 3, col: 8, color: 'b', type: 'p'},
-        
-        // 红方
-        {row: 9, col: 0, color: 'r', type: 'r'},
-        {row: 9, col: 1, color: 'r', type: 'n'},
-        {row: 9, col: 2, color: 'r', type: 'b'},
-        {row: 9, col: 3, color: 'r', type: 'a'},
-        {row: 9, col: 4, color: 'r', type: 'k'},
-        {row: 9, col: 5, color: 'r', type: 'a'},
-        {row: 9, col: 6, color: 'r', type: 'b'},
-        {row: 9, col: 7, color: 'r', type: 'n'},
-        {row: 9, col: 8, color: 'r', type: 'r'},
-        {row: 7, col: 1, color: 'r', type: 'c'},
-        {row: 7, col: 7, color: 'r', type: 'c'},
-        {row: 6, col: 0, color: 'r', type: 'p'},
-        {row: 6, col: 2, color: 'r', type: 'p'},
-        {row: 6, col: 4, color: 'r', type: 'p'},
-        {row: 6, col: 6, color: 'r', type: 'p'},
-        {row: 6, col: 8, color: 'r', type: 'p'}
-    ];
-    
-    setupBoardState = JSON.parse(JSON.stringify(initialPieces));
-    renderSetupBoard();
+    // 初始为空棋盘，不加载标准局面
+    // 如果需要标准开局，调用 resetSetupBoard() 后再加载
 }
 
 // 显示配置弹窗
@@ -498,13 +461,30 @@ function closeSetupConfig() {
     document.getElementById('setupConfigModal').style.display = 'none';
 }
 
+// 切换 AI 开关
+function toggleSetupAi(color) {
+    setupAiConfig[color] = !setupAiConfig[color];
+    updateSetupAiButton(color);
+}
+
+function updateSetupAiButton(color) {
+    const btn = document.getElementById(color === 'r' ? 'setupRedAiBtn' : 'setupBlackAiBtn');
+    if (btn) {
+        const enabled = setupAiConfig[color];
+        btn.textContent = `🤖 ${color === 'r' ? '红方' : '黑方'}AI: ${enabled ? '开' : '关'}`;
+        btn.classList.toggle('active', enabled);
+    }
+}
+
+// 更新先手方
+function updateFirstMove() {
+    setupFirstMove = document.getElementById('setupFirstMove').value;
+}
+
 // 开始自定义游戏
 async function startCustomGame() {
-    const redAi = document.getElementById('redAiToggle').checked;
-    const blackAi = document.getElementById('blackAiToggle').checked;
-    const firstMove = document.getElementById('firstMoveSelect').value;
-    
-    const ai_config = {'r': redAi, 'b': blackAi};
+    // 更新先手方
+    updateFirstMove();
     
     try {
         const response = await fetch('/api/games/custom', {
@@ -512,8 +492,8 @@ async function startCustomGame() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 board: setupBoardState,
-                ai_config: ai_config,
-                first_move: firstMove
+                ai_config: setupAiConfig,
+                first_move: setupFirstMove
             })
         });
         
@@ -524,7 +504,7 @@ async function startCustomGame() {
             if (typeof window !== 'undefined') {
                 window.currentGameId = data.game_id;
                 window.gameType = 'custom';
-                window.aiEnabled = ai_config;
+                window.aiEnabled = {...setupAiConfig};
             }
             
             // 切换到游戏界面
@@ -533,11 +513,7 @@ async function startCustomGame() {
             document.getElementById('aiToggleButtons').style.display = 'flex';
             
             // 初始化游戏
-            if (typeof initGameFromCustom === 'function') {
-                initGameFromCustom(data.game_id, ai_config, firstMove);
-            }
-            
-            closeSetupConfig();
+            initGameFromCustom(data.game_id, setupAiConfig, setupFirstMove);
         } else {
             alert('创建游戏失败：' + (data.error || '未知错误'));
         }
@@ -604,9 +580,7 @@ async function confirmSetupAction() {
             return;
         }
         
-        const redAi = document.getElementById('redAiToggle').checked;
-        const blackAi = document.getElementById('blackAiToggle').checked;
-        const firstMove = document.getElementById('firstMoveSelect').value;
+        updateFirstMove();
         
         try {
             const response = await fetch('/api/setups', {
@@ -615,8 +589,8 @@ async function confirmSetupAction() {
                 body: JSON.stringify({
                     name: name,
                     board: setupBoardState,
-                    ai_config: {'r': redAi, 'b': blackAi},
-                    first_move: firstMove
+                    ai_config: setupAiConfig,
+                    first_move: setupFirstMove
                 })
             });
             
@@ -646,9 +620,10 @@ async function loadSetup(name) {
             renderSetupBoard();
             
             // 设置配置
-            document.getElementById('redAiToggle').checked = data.setup.ai_config?.r || false;
-            document.getElementById('blackAiToggle').checked = data.setup.ai_config?.b || false;
-            document.getElementById('firstMoveSelect').value = data.setup.first_move || 'r';
+            setupAiConfig = data.setup.ai_config || {'r': false, 'b': false};
+            updateSetupAiButton('r');
+            updateSetupAiButton('b');
+            document.getElementById('setupFirstMove').value = data.setup.first_move || 'r';
             
             closeSetupList();
             alert('局面已加载');

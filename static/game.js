@@ -864,10 +864,11 @@ function initGameFromCustom(gameId, aiConfig, firstMove) {
     updateAiButton('r', aiEnabled.r);
     updateAiButton('b', aiEnabled.b);
     
+    // 重新创建棋盘
+    createBoardSVG();
+    
     // 加载游戏
-    if (typeof loadGame === 'function') {
-        loadGame(gameId);
-    }
+    loadGame(gameId);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

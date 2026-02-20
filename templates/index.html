@@ -93,43 +93,28 @@
             </div>
         </div>
         
+        <!-- AI 开关 -->
+        <div class="ai-toggle-row" id="setupAiToggle">
+            <button onclick="toggleSetupAi('r')" id="setupRedAiBtn" class="ai-toggle-btn">🤖 红方 AI: 关</button>
+            <button onclick="toggleSetupAi('b')" id="setupBlackAiBtn" class="ai-toggle-btn">🤖 黑方 AI: 关</button>
+        </div>
+        
+        <!-- 先手选择 -->
+        <div class="first-move-row">
+            <label>先手方：</label>
+            <select id="setupFirstMove">
+                <option value="r">红方</option>
+                <option value="b">黑方</option>
+            </select>
+        </div>
+        
         <!-- 操作按钮 -->
         <div class="setup-actions">
             <button onclick="resetSetupBoard()">🔄 清空</button>
             <button onclick="resetToInitial()">↩️ 初始局面</button>
             <button onclick="saveSetupDialog()">💾 保存局面</button>
             <button onclick="loadSetupDialog()">📂 加载局面</button>
-            <button class="primary-btn" onclick="showSetupConfig()">▶️ 开始游戏</button>
-        </div>
-    </div>
-
-    <!-- 游戏配置弹窗 -->
-    <div id="setupConfigModal" class="modal" style="display: none;">
-        <div class="modal-content setup-config">
-            <h3>游戏配置</h3>
-            
-            <div class="config-row">
-                <label for="redAiToggle">红方 AI</label>
-                <input type="checkbox" id="redAiToggle">
-            </div>
-            
-            <div class="config-row">
-                <label for="blackAiToggle">黑方 AI</label>
-                <input type="checkbox" id="blackAiToggle">
-            </div>
-            
-            <div class="config-row">
-                <label for="firstMoveSelect">先手方</label>
-                <select id="firstMoveSelect">
-                    <option value="r">红方</option>
-                    <option value="b">黑方</option>
-                </select>
-            </div>
-            
-            <div class="modal-buttons">
-                <button class="modal-btn cancel" onclick="closeSetupConfig()">取消</button>
-                <button class="modal-btn start" onclick="startCustomGame()">开始游戏</button>
-            </div>
+            <button class="primary-btn" onclick="startCustomGame()">▶️ 开始游戏</button>
         </div>
     </div>
 
