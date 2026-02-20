@@ -99,9 +99,9 @@ class ChineseChess:
         """验证将/帅"""
         if tc < 3 or tc > 5:
             return False
-        if piece[0] == self.BLACK and tr < 0 or tr > 2:
+        if piece[0] == self.BLACK and (tr < 0 or tr > 2):
             return False
-        if piece[0] == self.RED and tr < 7 or tr > 9:
+        if piece[0] == self.RED and (tr < 7 or tr > 9):
             return False
         
         dr, dc = abs(tr - fr), abs(tc - fc)
@@ -120,9 +120,9 @@ class ChineseChess:
         """验证士/仕"""
         if tc < 3 or tc > 5:
             return False
-        if piece[0] == self.BLACK and tr < 0 or tr > 2:
+        if piece[0] == self.BLACK and (tr < 0 or tr > 2):
             return False
-        if piece[0] == self.RED and tr < 7 or tr > 9:
+        if piece[0] == self.RED and (tr < 7 or tr > 9):
             return False
         
         dr, dc = abs(tr - fr), abs(tc - fc)
@@ -130,9 +130,9 @@ class ChineseChess:
     
     def _validate_elephant(self, piece, fr, fc, tr, tc):
         """验证象/相"""
-        if piece[0] == self.BLACK and tr < 0 or tr > 4:
+        if piece[0] == self.BLACK and (tr < 0 or tr > 4):
             return False
-        if piece[0] == self.RED and tr < 5 or tr > 9:
+        if piece[0] == self.RED and (tr < 5 or tr > 9):
             return False
         
         dr, dc = abs(tr - fr), abs(tc - fc)

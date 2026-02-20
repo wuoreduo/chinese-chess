@@ -448,12 +448,14 @@ function calculateValidMoves(row, col, piece) {
             let nr = row + dr;
             let nc = col + dc;
             
+            // 马：检查马腿
             if (piece.type === 'n') {
-                const legR = row + Math.sign(dr);
-                const legC = col + Math.sign(dc);
+                const legR = row + (Math.abs(dr) === 2 ? Math.sign(dr) : 0);
+                const legC = col + (Math.abs(dc) === 2 ? Math.sign(dc) : 0);
                 if (isBlocked(legR, legC)) continue;
             }
             
+            // 象：检查象眼
             if (piece.type === 'b') {
                 const eyeR = row + Math.sign(dr);
                 const eyeC = col + Math.sign(dc);
@@ -475,6 +477,7 @@ function calculateValidMoves(row, col, piece) {
         }
     }
     
+    // 仕/士：限制在九宫格内
     if (piece.type === 'a') {
         validMoves = validMoves.filter(([r, c]) => c >= 3 && c <= 5);
         if (piece.color === 'r') {
@@ -484,6 +487,7 @@ function calculateValidMoves(row, col, piece) {
         }
     }
     
+    // 相/象：限制在己方半场
     if (piece.type === 'b') {
         if (piece.color === 'r') {
             validMoves = validMoves.filter(([r, c]) => r >= 5);
@@ -492,12 +496,13 @@ function calculateValidMoves(row, col, piece) {
         }
     }
     
+    // 将/帅：限制在九宫格内
     if (piece.type === 'k') {
         validMoves = validMoves.filter(([r, c]) => c >= 3 && c <= 5);
         if (piece.color === 'r') {
-            validMoves = validMoves.filter(([r, c]) => r >= 7);
+            validMoves = validMoves.filter(([r, c]) => r >= 7 && r <= 9);
         } else {
-            validMoves = validMoves.filter(([r, c]) => r <= 2);
+            validMoves = validMoves.filter(([r, c]) => r >= 0 && r <= 2);
         }
     }
 }
@@ -559,6 +564,8 @@ function showValidMoves() {
         indicator.className = 'move-indicator';
         indicator.style.left = pos.x + 'px';
         indicator.style.top = pos.y + 'px';
+        indicator.dataset.row = row;
+        indicator.dataset.col = col;
         indicator.onclick = () => makeMove(row, col);
         boardEl.appendChild(indicator);
     });
