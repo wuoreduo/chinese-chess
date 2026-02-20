@@ -220,6 +220,7 @@ async function createGame() {
     const gameTypeSelect = document.getElementById('gameType');
     const selectedType = gameTypeSelect.value;
     gameType = selectedType;
+    window.gameOver = false;
     
     try {
         const response = await fetch('/api/games', {
@@ -381,6 +382,8 @@ function updateGameInfo(data) {
     playerEl.textContent = `当前：${data.current_player === 'r' ? '红方' : '黑方'}`;
     playerEl.className = data.current_player === 'r' ? 'red' : 'black';
     
+    window.gameOver = data.game_over;
+    
     if (data.game_over) {
         statusEl.textContent = data.winner === 'r' ? '红方获胜！' : '黑方获胜！';
     } else if (data.in_check && !wasInCheck) {
@@ -396,6 +399,11 @@ function onPieceClick(row, col, piece) {
     
     // AI vs AI 模式禁止玩家操作
     if (gameType === 'aivai') {
+        return;
+    }
+    
+    // 游戏结束后禁止操作
+    if (window.gameOver) {
         return;
     }
     
@@ -697,6 +705,7 @@ async function restartGame() {
     selectedPiece = null;
     validMoves = [];
     window.currentBoard = null;
+    window.gameOver = false;
     gameType = null;
     aiPaused = false;
     document.getElementById('gameInfo').style.display = 'none';
